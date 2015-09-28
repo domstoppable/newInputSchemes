@@ -2,12 +2,11 @@ import platform, time
 from PySide import QtGui, QtCore
 
 def play(sound):
-#	if platform.system() == "Linux":
-#		return
+	if platform.system() == "Linux":
+		return
 		
 	f = "assets/sounds/%s" % sound
 	QtGui.QSound.play(f)
-	time.sleep(1)
 
 if __name__ == '__main__':
 	for i in range(3):

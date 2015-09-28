@@ -13,7 +13,37 @@ class InputScheme(QtCore.QObject):
 
 	def quit(self):
 		pass
+
+	def doGrab(self, x, y):
+		widget = QtGui.QApplication.instance().widgetAt(x, y)
+		while widget != None:
+			if isinstance(widget, IconLayout) and not isinstance(widget, FolderIcon):
+				self.grabImage(widget)
+				return True
+			else:
+				widget = widget.parentWidget()
 		
+		sound.play("bummer.wav")
+		return False
+
+	def doRelease(self, x, y):
+		if self.grabbedIcon == None:
+			return False
+
+		widget = QtGui.QApplication.instance().widgetAt(x, y)
+		
+		while widget != None:
+			if isinstance(widget, FolderIcon):
+				self.moveImage(widget)
+				return True
+			else:
+				widget = widget.parentWidget()
+				
+		if widget == None:
+			self.releaseImage()
+			
+		return False
+			
 	def grabImage(self, image):
 		self.grabbedIcon = image
 		self.grabbedIcon._highlight()
@@ -71,6 +101,14 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 
+	def grabbed(self, hand):
+		gaze = self.getGaze()
+		self.doGrab(gaze[0], gaze[1])
+		
+	def released(self, hand):
+		gaze = self.getGaze()
+		self.doRelease(gaze[0], gaze[1])
+
 	def getGaze(self):
 		gazeFrame = None
 		try:
@@ -86,40 +124,6 @@ class LookGrabLookDropScheme(InputScheme):
 			pos = QtGui.QCursor.pos()
 			return (pos.x(), pos.y())
 
-	def grabbed(self, hand):
-		gaze = self.getGaze()
-		
-		widget = QtGui.QApplication.instance().widgetAt(gaze[0], gaze[1])
-		while widget != None:
-			if isinstance(widget, IconLayout):
-				if ".jpg" in widget.text:
-					self.grabImage(widget)
-				break
-			else:
-				widget = widget.parentWidget()
-		if self.grabbedIcon == None:
-			sound.play("bummer.wav")
-		
-	def released(self, hand):
-		if self.grabbedIcon == None:
-			return
-
-		target = self.getTarget()
-		widget = QtGui.QApplication.instance().widgetAt(target[0], target[1])
-		
-		while widget != None:
-			if isinstance(widget, FolderIcon):
-				self.moveImage(widget)
-				break
-			else:
-				widget = widget.parentWidget()
-				
-		if widget == None:
-			self.releaseImage()
-			
-	def getTarget(self):
-		return self.getGaze()
-	
 	def quit(self):
 		self.gestureTracker.exit()
 
@@ -130,7 +134,7 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 	def __init__(self):
 		super().__init__()
 		self.floatingIcon = None
-		self.gestureTracker.moved.connect(self.moveFloater)
+		self.gestureTracker.moved.connect(self.moved)
 
 	def grabbed(self, hand):
 		super().grabbed(hand)
@@ -141,21 +145,19 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 	def released(self, hand):
 		if self.floatingIcon == None:
 			return
-			
+
 		self.floatingIcon.hide()
-		super().released(hand)
-		
+
+		center = self.floatingIcon.geometry().center()
+		super().doRelease(center.x(), center.y())
+
 		self.floatingIcon.close()
 		self.floatingIcon = None
 
-	def moveFloater(self, delta):
+	def moved(self, delta):
 		if self.floatingIcon:
 			self.floatingIcon.moveBy(delta)
 		
-	def getTarget(self):
-		center = self.floatingIcon.geometry().center()
-		return (center.x(), center.y())
-	
 '''
 '
 '''
@@ -171,38 +173,30 @@ class MouseOnlyScheme(InputScheme):
 		window = QtGui.QApplication.instance().activeWindow()
 		
 		if window == None:
-			QtCore.QTimer.singleShot(10, self.connectEvents)
+			QtCore.QTimer.singleShot(100, self.connectEvents)
 		else:
 			window.mousePressed.connect(self.grab)
 			window.mouseReleased.connect(self.release)
 			window.mouseMoved.connect(self.move)
+			print("Events connected")
 		
 	def grab(self, obj, mouseEvent):
-		if isinstance(obj, IconLayout) and not isinstance(obj, FolderIcon):
-			self.grabImage(obj)
-			self.floatingIcon = DraggingIcon(self.grabbedIcon, mouseEvent.pos())
-			self.mouseStartPoint = obj.mapToGlobal(mouseEvent.pos())
-
+		if self.grabbedIcon == None:
+			pos = obj.mapToGlobal(mouseEvent.pos())
+			if self.doGrab(pos.x(), pos.y()):
+				self.floatingIcon = DraggingIcon(self.grabbedIcon, mouseEvent.pos())
+				self.mouseStartPoint = pos
+				
 	def release(self, obj, mouseEvent):
 		if self.floatingIcon == None:
 			return
-			
+		pos = obj.mapToGlobal(mouseEvent.pos())
 		self.floatingIcon.hide()
-		p = obj.mapToGlobal(mouseEvent.pos())
-		widget = QtGui.QApplication.instance().widgetAt(p)
-		while widget != None:
-			if isinstance(widget, IconLayout):
-				if ".jpg" not in widget.text:
-					self.moveImage(widget)
-				break
-			else:
-				widget = widget.parentWidget()
-				
-		self.releaseImage()
+
+		self.doRelease(pos.x(), pos.y())
 		
-		if self.floatingIcon:
-			self.floatingIcon.close()
-			self.floatingIcon = None
+		self.floatingIcon.close()
+		self.floatingIcon = None
 		
 	def move(self, obj, mouseEvent):
 		if self.floatingIcon:

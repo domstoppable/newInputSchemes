@@ -105,7 +105,7 @@ def main(args):
 
 	#scheme = LookGrabLookDropScheme()
 	#scheme = LeapMovesMeScheme()
-	scheme = MouseOnlyScheme()
+	#scheme = MouseOnlyScheme()
 
 	container = DragDropTaskWindow()
 	container.showFullScreen()
