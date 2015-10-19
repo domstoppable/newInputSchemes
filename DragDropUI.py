@@ -133,7 +133,31 @@ class FoldersWindow(QtGui.QScrollArea):
 		self.setWidget(container)
 		self.setWindowTitle('Folders')
 
-
+class FixedQMDISubWindow(QtGui.QMdiSubWindow):
+	def __init__(self, child):
+		super().__init__()
+		self.setWidget(child)
+		self.resizeCount = 0
+		self.lockedSize = None
+		self.lockedPosition = None
+#		self.windowStateChanged.connect(self.stateChanged)
+		self.setWindowFlags(QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint)
+		
+	def moveEvent(self, event):
+		if self.resizeCount < 2:
+			super().moveEvent(event)
+		else:
+			super().move(self.lockedPosition)
+		
+	def resizeEvent(self, event):
+		super().resizeEvent(event)
+		if self.resizeCount < 2:
+			self.resizeCount += 1
+			self.lockedSize = self.size()
+			self.lockedPosition = self.pos()
+		else:
+			self.resize(self.lockedSize)
+		
 class DragDropTaskWindow(QtGui.QMdiArea):
 	mousePressed = QtCore.Signal(object, object)
 	mouseReleased = QtCore.Signal(object, object)
@@ -142,8 +166,8 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 	def __init__(self):
 		super().__init__()
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
-		self.addSubWindow(ImagesWindow())
-		self.addSubWindow(FoldersWindow())
+		self.addSubWindow(FixedQMDISubWindow(ImagesWindow()))
+		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
 		
 		self.setMouseTracking(True)
 		
