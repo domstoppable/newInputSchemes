@@ -278,3 +278,51 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 			self.y() - delta[1] * 10
 		]
 		self.move(pos[0], pos[1])
+
+
+class SchemeSelector(QtGui.QWidget):
+	selected = QtCore.Signal(object)
+	def __init__(self):
+		super().__init__()
+		
+		layout = QtGui.QVBoxLayout()
+		self.setLayout(layout)
+		
+		b = QtGui.QPushButton('Look, grab, look, drop')
+		font = b.font()
+		font.setPointSize(18)
+		b.setFont(font)
+		b.clicked.connect(self.startLGLD)
+		layout.addWidget(b)
+		
+		b = QtGui.QPushButton('Look, grab, move, drop')
+		b.setFont(font)
+		b.clicked.connect(self.startLGMD)
+		layout.addWidget(b)
+		
+		b = QtGui.QPushButton('Mouse only')
+		b.setFont(font)
+		b.clicked.connect(self.startMouseOnly)
+		layout.addWidget(b)
+		
+		b = QtGui.QPushButton('LEAP only')
+		b.setFont(font)
+		b.clicked.connect(self.startLeapOnly)
+		layout.addWidget(b)
+	
+	def startLGLD(self, checked=None):
+		self.selected.emit('LookGrabLookDropScheme')
+		self.destroy()
+		
+	def startLGMD(self, checked=None):
+		self.selected.emit('LookGrabMoveDropScheme')
+		self.destroy()
+		
+	def startMouseOnly(self, checked=None):
+		self.selected.emit('MouseOnlyScheme')
+		self.destroy()
+		
+	def startLeapOnly(self, checked=None):
+		self.selected.emit('LeapOnlyScheme')
+		self.destroy()
+		
