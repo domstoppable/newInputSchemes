@@ -207,7 +207,47 @@ class MouseOnlyScheme(InputScheme):
 				p.x() - self.floatingIcon.width()/2,
 				p.y() - self.floatingIcon.height()/2
 			)
+'''
+'
+'''
+class LeapOnlyScheme(MouseOnlyScheme):
+	def __init__(self):
+		super().__init__()
+
+		from LeapDevice import LeapDevice
+		from pymouse import PyMouse
 		
+		self.gestureTracker = LeapDevice()
+		self.gestureTracker.grabbed.connect(self.grabbed)
+		self.gestureTracker.released.connect(self.released)
+		self.gestureTracker.moved.connect(self.moved)
+		
+		self.mouse = PyMouse()
+		
+	def grab(self, obj, mouseEvent):
+		if self.grabbedIcon == None:
+			pos = obj.mapToGlobal(mouseEvent.pos())
+			if self.doGrab(pos.x(), pos.y()):
+				self.floatingIcon = DraggingIcon(self.grabbedIcon, mouseEvent.pos())
+				self.mouseStartPoint = mouseEvent.pos()
+				self.move(obj, mouseEvent)
+						
+	def grabbed(self, hand):
+		location = self.mouse.position()
+		self.mouse.press(location[0], location[1])
+
+	def released(self, hand):
+		location = self.mouse.position()
+		self.mouse.release(location[0], location[1])
+		
+	def moved(self, delta):
+		location = self.mouse.position()
+		self.mouse.move(
+			int(location[0] + delta[0] * 10),
+			int(location[1] - delta[1] * 10)
+		)
+		if self.floatingIcon:
+			self.floatingIcon.moveBy(delta)		
 '''
 '
 '''

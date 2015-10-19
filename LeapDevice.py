@@ -44,7 +44,6 @@ class HandyHand():
 		
 	def updatePosition(self):
 		newPos = self.hand.stabilized_palm_position
-#		print("%s - %s" % (newPos, self.position))
 		delta = [
 			newPos.x - self.position[0],
 			newPos.y - self.position[1],

@@ -10,8 +10,9 @@ def main(args):
 	app = QtGui.QApplication(sys.argv)
 
 	#scheme = LookGrabLookDropScheme()
-	scheme = LeapMovesMeScheme()
+	#scheme = LeapMovesMeScheme()
 	#scheme = MouseOnlyScheme()
+	scheme = LeapOnlyScheme()
 
 	container = DragDropTaskWindow()
 	container.showFullScreen()
