@@ -1,5 +1,5 @@
 from PySide import QtGui, QtCore
-from IconLayout import *
+from DragDropUI import IconLayout, FolderIcon
 import sound
 
 '''
