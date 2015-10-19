@@ -85,7 +85,7 @@ class FolderIcon(IconLayout):
 class ImagesWindow(QtGui.QScrollArea):
 	def __init__(self):
 		super().__init__()
-		self.setWidgetResizable(False)
+		self.setWidgetResizable(True)
 		self.initUI()
 
 	def initUI(self):
@@ -110,7 +110,7 @@ class ImagesWindow(QtGui.QScrollArea):
 class FoldersWindow(QtGui.QScrollArea):
 	def __init__(self):
 		super().__init__()
-		self.setWidgetResizable(False)
+		self.setWidgetResizable(True)
 		self.initUI()
 
 	def initUI(self):
