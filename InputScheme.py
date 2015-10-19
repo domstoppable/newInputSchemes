@@ -185,7 +185,8 @@ class MouseOnlyScheme(InputScheme):
 			pos = obj.mapToGlobal(mouseEvent.pos())
 			if self.doGrab(pos.x(), pos.y()):
 				self.floatingIcon = DraggingIcon(self.grabbedIcon, mouseEvent.pos())
-				self.mouseStartPoint = pos
+				self.mouseStartPoint = mouseEvent.pos()
+				self.move(obj, mouseEvent)
 				
 	def release(self, obj, mouseEvent):
 		if self.floatingIcon == None:
@@ -201,11 +202,11 @@ class MouseOnlyScheme(InputScheme):
 	def move(self, obj, mouseEvent):
 		if self.floatingIcon:
 			p = obj.mapToGlobal(mouseEvent.pos())
-			delta = [
-				p.x() - self.mouseStartPoint.x(),
-				self.mouseStartPoint.y() - p.y()
-			]
-			self.floatingIcon.moveBy(delta)
+				
+			self.floatingIcon.move(
+				p.x() - self.floatingIcon.width()/2,
+				p.y() - self.floatingIcon.height()/2
+			)
 		
 '''
 '
@@ -214,18 +215,17 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 	def __init__(self, fromIcon, offset=None):
 		super().__init__()
 		
-		if offset == None:
-			offset = QtCore.QPoint(75, 75)
-		offset = offset + QtCore.QPoint(-38, -38)
-		self.startPoint = fromIcon.mapToGlobal(fromIcon.rect().topLeft()) + offset
-		
 		icon = QtGui.QLabel()
 		icon.setPixmap(QtGui.QPixmap.fromImage(fromIcon.image.scaled(75, 75)))
 		self.setWidget(icon)
 		
 		QtGui.QApplication.instance().activeWindow().addSubWindow(self, QtCore.Qt.FramelessWindowHint)
 		
-		self.move(self.startPoint)
+		if offset == None:
+			offset = QtCore.QPoint(75, 75)
+		pos = fromIcon.mapToGlobal(fromIcon.imageWidget.rect().center())
+		
+		self.move(pos.x() , pos.y() )
 		self.show()
 
 	def moveBy(self, delta):
