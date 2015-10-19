@@ -248,6 +248,10 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		)
 		if self.floatingIcon:
 			self.floatingIcon.moveBy(delta)		
+
+	def quit(self):
+		self.gestureTracker.exit()
+
 '''
 '
 '''
