@@ -97,7 +97,7 @@ class LookGrabLookDropScheme(InputScheme):
 			self.gazeTracker.connect()
 		except:
 			print("Could not connect to EyeTribe")
-        
+			
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 
@@ -230,7 +230,7 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 
 	def moveBy(self, delta):
 		pos = [
-			self.startPoint.x() + delta[0],
-			self.startPoint.y() - delta[1]
+			self.x() + delta[0] * 10,
+			self.y() - delta[1] * 10
 		]
 		self.move(pos[0], pos[1])
