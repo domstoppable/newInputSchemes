@@ -13,9 +13,11 @@ from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
 class LeapDevice(QtCore.QObject):
 	handAppeared = QtCore.Signal(object)
 	handDisappeared = QtCore.Signal(object)
+	noHands = QtCore.Signal()
 	grabbed = QtCore.Signal(object)
 	released = QtCore.Signal(object)	
 	moved = QtCore.Signal(object)
+	pinchValued = QtCore.Signal(object)
 	
 	def __init__(self):
 		super().__init__()
@@ -67,8 +69,8 @@ class HandyHand():
 class Connector(Leap.Listener):
 	def __init__(self):
 		super().__init__()
-		self.grabThreshold = 0.75
-		self.releaseThreshold = 0.70
+		self.grabThreshold = 0.70
+		self.releaseThreshold = 0.50
 	
 		self.signaler = None
 		
@@ -82,6 +84,9 @@ class Connector(Leap.Listener):
 		frame = controller.frame()
 		hands = frame.hands
 		numHands = len(hands)
+		
+		if len(hands) == 0:
+			self.signaler.noHands.emit()
 
 		for hand in hands:
 			if hand.is_left:
@@ -97,6 +102,7 @@ class Connector(Leap.Listener):
 				self.rightHand.setHand(hand)
 				metaHand = self.rightHand
 
+			self.signaler.pinchValued.emit(hand.pinch_strength)
 			if not metaHand.grabbing:
 				if hand.pinch_strength >= self.grabThreshold:
 					metaHand.grabbing = True

@@ -158,6 +158,98 @@ class FixedQMDISubWindow(QtGui.QMdiSubWindow):
 		else:
 			self.resize(self.lockedSize)
 		
+class LeapOptionsWindow(QtGui.QWidget):
+	scalingChanged = QtCore.Signal(object)
+	grabThresholdChanged = QtCore.Signal(object)
+	releaseThresholdChanged = QtCore.Signal(object)
+	
+	def __init__(self, scheme):
+		super().__init__()
+		
+		self.setWindowTitle('LEAP Options')
+		
+		leapDevice = scheme.gestureTracker
+		
+		font = self.font()
+		font.setStyleHint(QtGui.QFont.Monospace)
+		font.setFamily("Courier New")
+		font.setPointSize(18)
+		self.setFont(font)
+		
+		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+		layout = QtGui.QGridLayout()
+		layout.setSpacing(20)
+		self.setLayout(layout)
+		
+		scalingBox = QtGui.QDoubleSpinBox()
+		scalingBox.setValue(scheme.scale)
+		scalingBox.setRange(-20, 20)
+		scalingBox.setSingleStep(0.5)
+		scalingBox.setSuffix("x")
+		scalingBox.valueChanged.connect(self.emitScaleChange)
+		
+		grabThresholdBox = QtGui.QDoubleSpinBox()
+		grabThresholdBox.setValue(100 * leapDevice.listener.grabThreshold)
+		grabThresholdBox.setRange(0, 100)
+		grabThresholdBox.setSingleStep(1)
+		grabThresholdBox.setSuffix("%")
+		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
+		
+		releaseThresholdBox = QtGui.QDoubleSpinBox()
+		releaseThresholdBox.setValue(100 * leapDevice.listener.releaseThreshold)
+		releaseThresholdBox.setRange(0, 100)
+		releaseThresholdBox.setSingleStep(1)
+		releaseThresholdBox.setSuffix("%")
+		releaseThresholdBox.valueChanged.connect(self.emitReleaseThresholdChange)
+		
+		self.currentPinchBox = QtGui.QLabel()
+		self.currentPinchBox.setAlignment(QtCore.Qt.AlignRight)
+		font.setPointSize(24)
+		self.currentPinchBox.setFont(font)
+
+		
+		layout.addWidget(QtGui.QLabel('Movement scaling'), 0, 0)
+		layout.addWidget(scalingBox, 0, 1)
+		
+		layout.addWidget(QtGui.QLabel('Grab threshold'), 1, 0)
+		layout.addWidget(grabThresholdBox, 1, 1)
+		
+		layout.addWidget(QtGui.QLabel('Release threshold'), 2, 0)
+		layout.addWidget(releaseThresholdBox, 2, 1)
+		
+		layout.addWidget(QtGui.QLabel('Current pinch value'), 3, 0)
+		layout.addWidget(self.currentPinchBox, 3, 1)
+		
+		leapDevice.pinchValued.connect(self.setPinchValue)
+		leapDevice.noHands.connect(self.setPinchValue)
+		leapDevice.grabbed.connect(self.grabbed)
+		leapDevice.released.connect(self.released)
+		
+	def emitScaleChange(self, value):
+		self.scalingChanged.emit(value)
+	
+	def emitGrabThresholdChange(self, value):
+		self.grabThresholdChanged.emit(value / 100)
+	
+	def emitReleaseThresholdChange(self, value):
+		self.releaseThresholdChanged.emit(value / 100)
+		
+	def grabbed(self):
+		font = self.currentPinchBox.font()
+		font.setBold(True)
+		self.currentPinchBox.setFont(font)
+
+	def released(self):
+		font = self.currentPinchBox.font()
+		font.setBold(False)
+		self.currentPinchBox.setFont(font)
+
+	def setPinchValue(self, value=None):
+		if value is None:
+			self.currentPinchBox.setText('')
+		else:
+			self.currentPinchBox.setText('%.1f%% ' % (100*value))
+		
 class DragDropTaskWindow(QtGui.QMdiArea):
 	mousePressed = QtCore.Signal(object, object)
 	mouseReleased = QtCore.Signal(object, object)
@@ -165,6 +257,8 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 	
 	def __init__(self):
 		super().__init__()
+		self.optionsWindow = None
+		
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
 		self.addSubWindow(FixedQMDISubWindow(ImagesWindow()))
 		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
@@ -182,6 +276,12 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		QtGui.QWidget.setMouseTracking(self, flag)
 		recursive_set(self)
 		
+	def keyPressEvent(self, event):
+		super().keyPressEvent(event)
+		if event.text() == 'o' and self.optionsWindow is not None:
+			self.optionsWindow.show()
+
+		
 	def eventFilter(self, obj, event):
 		if event.type() == QtCore.QEvent.Type.MouseMove:
 			self.mouseMoved.emit(obj, event)
@@ -191,3 +291,13 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 			self.mouseReleased.emit(obj, event)
 			
 		return False
+
+if __name__ == '__main__':
+	import sys
+	app = QtGui.QApplication(sys.argv)
+	font = app.font()
+	font.setPointSize(18)
+	app.setFont(font)
+	window = LeapOptions()
+	window.show()
+	app.exec_()

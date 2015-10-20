@@ -7,24 +7,38 @@ from DragDropUI import *
 from InputScheme import *
 
 def main(args):
-	app = QtGui.QApplication(sys.argv)
+	try:
+		app = QtGui.QApplication(sys.argv)
 
-	if args[1] == 'LookGrabLookDropScheme':
-		scheme = LookGrabLookDropScheme()
-	elif args[1] == 'LeapMovesMeScheme':
-		scheme = LeapMovesMeScheme()
-	elif args[1] == 'MouseOnlyScheme':
-		scheme = MouseOnlyScheme()
-	elif args[1] == 'LeapOnlyScheme':
-		scheme = LeapOnlyScheme()
+		window = DragDropTaskWindow()
 
-	window = DragDropTaskWindow()
-	window.showFullScreen()
-	window.tileSubWindows()
+		if args[1] == 'LookGrabLookDropScheme':
+			scheme = LookGrabLookDropScheme(window)
+		elif args[1] == 'LeapMovesMeScheme':
+			scheme = LeapMovesMeScheme(window)
+		elif args[1] == 'MouseOnlyScheme':
+			scheme = MouseOnlyScheme(window)
+		elif args[1] == 'LeapOnlyScheme':
+			scheme = LeapOnlyScheme(window)
+		else:
+			raise Exception("Unknown scheme %s" % args[1])
 
-	app.exec_()
+		window.showFullScreen()
+		window.tileSubWindows()
 
-	scheme.quit()
+		if args[1] in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
+			window.optionsWindow = LeapOptionsWindow(scheme)
+			window.optionsWindow.scalingChanged.connect(scheme.setScaling)
+			window.optionsWindow.grabThresholdChanged.connect(scheme.setGrabThreshold)
+			window.optionsWindow.releaseThresholdChanged.connect(scheme.setReleaseThreshold)
+
+		app.exec_()
+		scheme.quit()
+	except Exception as exc:
+		msgBox = QtGui.QMessageBox()
+		msgBox.setText("ERROR: %s" % exc);
+		msgBox.exec();
+		sys.exit(1)
 	
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))

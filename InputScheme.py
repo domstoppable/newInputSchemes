@@ -6,10 +6,11 @@ import sound
 '
 '''
 class InputScheme(QtCore.QObject):
-	def __init__(self):
+	def __init__(self, window):
 		super(QtCore.QObject).__init__()
 		self.grabbedIcon = None
 		self.destination = None
+		self.window = window
 
 	def quit(self):
 		pass
@@ -85,8 +86,8 @@ class InputScheme(QtCore.QObject):
 '
 '''
 class LookGrabLookDropScheme(InputScheme):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, window):
+		super().__init__(window)
 		
 		from LeapDevice import LeapDevice
 		from peyetribe import EyeTribe
@@ -100,6 +101,7 @@ class LookGrabLookDropScheme(InputScheme):
 			
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
+		self.scale = 0
 
 	def grabbed(self, hand):
 		gaze = self.getGaze()
@@ -124,6 +126,15 @@ class LookGrabLookDropScheme(InputScheme):
 			pos = QtGui.QCursor.pos()
 			return (pos.x(), pos.y())
 
+	def setScaling(self, value):
+		pass
+
+	def setGrabThreshold(self, value):
+		self.gestureTracker.listener.grabThreshold = value
+
+	def setReleaseThreshold(self, value):
+		self.gestureTracker.listener.releaseThreshold = value
+		
 	def quit(self):
 		self.gestureTracker.exit()
 
@@ -131,8 +142,10 @@ class LookGrabLookDropScheme(InputScheme):
 '
 '''
 class LeapMovesMeScheme(LookGrabLookDropScheme):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, window):
+		super().__init__(window)
+		
+		self.scale = 1
 		self.floatingIcon = None
 		self.gestureTracker.moved.connect(self.moved)
 
@@ -140,7 +153,7 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 		super().grabbed(hand)
 		
 		if self.grabbedIcon != None:
-			self.floatingIcon = DraggingIcon(self.grabbedIcon)
+			self.floatingIcon = DraggingIcon(self.grabbedIcon, self.window)
 
 	def released(self, hand):
 		if self.floatingIcon == None:
@@ -156,35 +169,45 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 
 	def moved(self, delta):
 		if self.floatingIcon:
-			self.floatingIcon.moveBy(delta)
+			self.floatingIcon.moveBy(
+				delta[0] * self.scale,
+				delta[1] * self.scale
+			)
+			
+	def setScaling(self, value):
+		self.scale = value
+
+	def setGrabThreshold(self, value):
+		self.gestureTracker.listener.grabThreshold = value
+
+	def setReleaseThreshold(self, value):
+		self.gestureTracker.listener.releaseThreshold = value
 		
 '''
 '
 '''
 class MouseOnlyScheme(InputScheme):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, window):
+		super().__init__(window)
 		
 		self.connectEvents()
 		self.floatingIcon = None
 		self.mouseStartPoint = None
 		
 	def connectEvents(self):
-		window = QtGui.QApplication.instance().activeWindow()
-		
-		if window == None:
+		if self.window == None:
 			QtCore.QTimer.singleShot(100, self.connectEvents)
 		else:
-			window.mousePressed.connect(self.grab)
-			window.mouseReleased.connect(self.release)
-			window.mouseMoved.connect(self.move)
+			self.window.mousePressed.connect(self.grab)
+			self.window.mouseReleased.connect(self.release)
+			self.window.mouseMoved.connect(self.move)
 			print("Events connected")
 		
 	def grab(self, obj, mouseEvent):
 		if self.grabbedIcon == None:
 			pos = obj.mapToGlobal(mouseEvent.pos())
 			if self.doGrab(pos.x(), pos.y()):
-				self.floatingIcon = DraggingIcon(self.grabbedIcon, mouseEvent.pos())
+				self.floatingIcon = DraggingIcon(self.grabbedIcon, self.window, mouseEvent.pos())
 				self.mouseStartPoint = mouseEvent.pos()
 				self.move(obj, mouseEvent)
 				
@@ -211,11 +234,13 @@ class MouseOnlyScheme(InputScheme):
 '
 '''
 class LeapOnlyScheme(MouseOnlyScheme):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, window):
+		super().__init__(window)
 
 		from LeapDevice import LeapDevice
 		from pymouse import PyMouse
+		
+		self.scale = 7.5
 		
 		self.gestureTracker = LeapDevice()
 		self.gestureTracker.grabbed.connect(self.grabbed)
@@ -228,7 +253,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		if self.grabbedIcon == None:
 			pos = obj.mapToGlobal(mouseEvent.pos())
 			if self.doGrab(pos.x(), pos.y()):
-				self.floatingIcon = DraggingIcon(self.grabbedIcon, mouseEvent.pos())
+				self.floatingIcon = DraggingIcon(self.grabbedIcon, self.window, mouseEvent.pos())
 				self.mouseStartPoint = mouseEvent.pos()
 				self.move(obj, mouseEvent)
 						
@@ -243,11 +268,20 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def moved(self, delta):
 		location = self.mouse.position()
 		self.mouse.move(
-			int(location[0] + delta[0] * 10),
-			int(location[1] - delta[1] * 10)
+			int(location[0] + delta[0] * self.scale),
+			int(location[1] - delta[1] * self.scale)
 		)
 		if self.floatingIcon:
-			self.floatingIcon.moveBy(delta)		
+			self.floatingIcon.moveBy(delta)
+			
+	def setScaling(self, value):
+		self.scale = value
+
+	def setGrabThreshold(self, value):
+		self.gestureTracker.listener.grabThreshold = value
+
+	def setReleaseThreshold(self, value):
+		self.gestureTracker.listener.releaseThreshold = value
 
 	def quit(self):
 		self.gestureTracker.exit()
@@ -256,14 +290,14 @@ class LeapOnlyScheme(MouseOnlyScheme):
 '
 '''
 class DraggingIcon(QtGui.QMdiSubWindow):
-	def __init__(self, fromIcon, offset=None):
+	def __init__(self, fromIcon, parentWindow, offset=None):
 		super().__init__()
 		
 		icon = QtGui.QLabel()
 		icon.setPixmap(QtGui.QPixmap.fromImage(fromIcon.image.scaled(75, 75)))
 		self.setWidget(icon)
 		
-		QtGui.QApplication.instance().activeWindow().addSubWindow(self, QtCore.Qt.FramelessWindowHint)
+		parentWindow.addSubWindow(self, QtCore.Qt.FramelessWindowHint)
 		
 		if offset == None:
 			offset = QtCore.QPoint(75, 75)
@@ -272,10 +306,13 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 		self.move(pos.x() , pos.y() )
 		self.show()
 
-	def moveBy(self, delta):
+	def moveBy(self, delta, delta2=None):
+		if delta2 is not None:
+			delta = [delta, delta2]
+			
 		pos = [
-			self.x() + delta[0] * 10,
-			self.y() - delta[1] * 10
+			self.x() + delta[0],
+			self.y() - delta[1]
 		]
 		self.move(pos[0], pos[1])
 
@@ -284,6 +321,8 @@ class SchemeSelector(QtGui.QWidget):
 	selected = QtCore.Signal(object)
 	def __init__(self):
 		super().__init__()
+		
+		self.setWindowTitle('Project 2 Launcher')
 		
 		layout = QtGui.QVBoxLayout()
 		self.setLayout(layout)
