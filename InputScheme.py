@@ -145,7 +145,7 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 	def __init__(self, window):
 		super().__init__(window)
 		
-		self.scale = 1
+		self.scale = 8.5
 		self.floatingIcon = None
 		self.gestureTracker.moved.connect(self.moved)
 
@@ -240,7 +240,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		from LeapDevice import LeapDevice
 		from pymouse import PyMouse
 		
-		self.scale = 7.5
+		self.scale = 8.5
 		
 		self.gestureTracker = LeapDevice()
 		self.gestureTracker.grabbed.connect(self.grabbed)
@@ -354,7 +354,7 @@ class SchemeSelector(QtGui.QWidget):
 		self.destroy()
 		
 	def startLGMD(self, checked=None):
-		self.selected.emit('LookGrabMoveDropScheme')
+		self.selected.emit('LeapMovesMeScheme')
 		self.destroy()
 		
 	def startMouseOnly(self, checked=None):

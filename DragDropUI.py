@@ -2,6 +2,48 @@ import os, random
 from PySide import QtGui, QtCore
 from FlowLayout import *
 
+class DragDropTaskWindow(QtGui.QMdiArea):
+	mousePressed = QtCore.Signal(object, object)
+	mouseReleased = QtCore.Signal(object, object)
+	mouseMoved = QtCore.Signal(object, object)
+	
+	def __init__(self):
+		super().__init__()
+		self.optionsWindow = None
+		
+		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
+		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
+		self.addSubWindow(FixedQMDISubWindow(ImagesWindow()))
+		
+		self.setMouseTracking(True)
+		
+	def setMouseTracking(self, flag):
+		def recursive_set(parent):
+			for child in parent.findChildren(QtCore.QObject):
+				try:
+					child.setMouseTracking(flag)
+				except:
+					pass
+				recursive_set(child)
+		QtGui.QWidget.setMouseTracking(self, flag)
+		recursive_set(self)
+		
+	def keyPressEvent(self, event):
+		super().keyPressEvent(event)
+		if event.text() == 'o' and self.optionsWindow is not None:
+			self.optionsWindow.show()
+
+		
+	def eventFilter(self, obj, event):
+		if event.type() == QtCore.QEvent.Type.MouseMove:
+			self.mouseMoved.emit(obj, event)
+		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
+			self.mousePressed.emit(obj, event)
+		elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
+			self.mouseReleased.emit(obj, event)
+			
+		return False
+
 class IconLayout(QtGui.QWidget):
 	highlight = QtCore.Signal()
 	unhighlight = QtCore.Signal()
@@ -250,48 +292,6 @@ class LeapOptionsWindow(QtGui.QWidget):
 		else:
 			self.currentPinchBox.setText('%.1f%% ' % (100*value))
 		
-class DragDropTaskWindow(QtGui.QMdiArea):
-	mousePressed = QtCore.Signal(object, object)
-	mouseReleased = QtCore.Signal(object, object)
-	mouseMoved = QtCore.Signal(object, object)
-	
-	def __init__(self):
-		super().__init__()
-		self.optionsWindow = None
-		
-		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
-		self.addSubWindow(FixedQMDISubWindow(ImagesWindow()))
-		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
-		
-		self.setMouseTracking(True)
-		
-	def setMouseTracking(self, flag):
-		def recursive_set(parent):
-			for child in parent.findChildren(QtCore.QObject):
-				try:
-					child.setMouseTracking(flag)
-				except:
-					pass
-				recursive_set(child)
-		QtGui.QWidget.setMouseTracking(self, flag)
-		recursive_set(self)
-		
-	def keyPressEvent(self, event):
-		super().keyPressEvent(event)
-		if event.text() == 'o' and self.optionsWindow is not None:
-			self.optionsWindow.show()
-
-		
-	def eventFilter(self, obj, event):
-		if event.type() == QtCore.QEvent.Type.MouseMove:
-			self.mouseMoved.emit(obj, event)
-		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
-			self.mousePressed.emit(obj, event)
-		elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
-			self.mouseReleased.emit(obj, event)
-			
-		return False
-
 if __name__ == '__main__':
 	import sys
 	app = QtGui.QApplication(sys.argv)
