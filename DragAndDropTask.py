@@ -6,27 +6,31 @@ from PySide import QtGui, QtCore
 from DragDropUI import *
 from InputScheme import *
 
-def main(args):
+def main(args=None, scheme=None, app=None):
 	try:
-		app = QtGui.QApplication(sys.argv)
+		if app is None:
+			app = QtGui.QApplication(sys.argv)
 
 		window = DragDropTaskWindow()
+		
+		if scheme is None:
+			scheme = args[1]
 
-		if args[1] == 'LookGrabLookDropScheme':
+		if scheme == 'LookGrabLookDropScheme':
 			scheme = LookGrabLookDropScheme(window)
-		elif args[1] == 'LeapMovesMeScheme':
+		elif scheme == 'LeapMovesMeScheme':
 			scheme = LeapMovesMeScheme(window)
-		elif args[1] == 'MouseOnlyScheme':
+		elif scheme == 'MouseOnlyScheme':
 			scheme = MouseOnlyScheme(window)
-		elif args[1] == 'LeapOnlyScheme':
+		elif scheme == 'LeapOnlyScheme':
 			scheme = LeapOnlyScheme(window)
 		else:
-			raise Exception("Unknown scheme %s" % args[1])
+			raise Exception("Unknown scheme %s" % scheme)
 
 		window.showFullScreen()
 		window.tileSubWindows()
 
-		if args[1] in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
+		if scheme in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
 			window.optionsWindow = LeapOptionsWindow(scheme)
 			window.optionsWindow.scalingChanged.connect(scheme.setScaling)
 			window.optionsWindow.grabThresholdChanged.connect(scheme.setGrabThreshold)
@@ -35,10 +39,11 @@ def main(args):
 		app.exec_()
 		scheme.quit()
 	except Exception as exc:
+		print(exc)
 		msgBox = QtGui.QMessageBox()
 		msgBox.setText("ERROR: %s" % exc);
 		msgBox.exec();
 		sys.exit(1)
-	
+
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))

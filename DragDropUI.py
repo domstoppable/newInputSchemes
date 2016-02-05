@@ -159,7 +159,7 @@ class FoldersWindow(QtGui.QScrollArea):
 		container = QtGui.QWidget()
 		layout = FlowLayout()
 		
-		image = QtGui.QImage('assets/folder.svg').scaled(150, 150)
+		image = QtGui.QImage('assets/folder.png').scaled(150, 150)
 		folderNames = [
 			'Cats', 'Cows', 'Dogs', 'Pigs',
 			'Rabbits', 'Birds', 'Bugs', 'Vacation',

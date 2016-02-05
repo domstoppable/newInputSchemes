@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from subprocess import Popen
-
 import sys
 from PySide import QtGui, QtCore
 from DragDropUI import *
@@ -12,7 +10,7 @@ app = QtGui.QApplication(sys.argv)
 
 def schemeSelected(schemeName):
 	app.exit()
-	Popen( [ 'pythonw.exe', 'drag-and-drop-task.py', schemeName])
+	os.system('pythonw.exe DragAndDropTask.py "%s"' % schemeName)
 
 def main(args):
 	window = SchemeSelector()
