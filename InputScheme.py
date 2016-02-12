@@ -1,13 +1,17 @@
 from PySide import QtGui, QtCore
 from DragDropUI import IconLayout, FolderIcon
+from functools import partial
 import sound
+
+from LeapDevice import LeapDevice
+from peyetribe import EyeTribe
 
 '''
 '
 '''
 class InputScheme(QtCore.QObject):
 	def __init__(self, window):
-		super(QtCore.QObject).__init__()
+		super().__init__()
 		self.grabbedIcon = None
 		self.destination = None
 		self.window = window
@@ -81,6 +85,9 @@ class InputScheme(QtCore.QObject):
 		self.grabbedIcon.unhighlight.emit()
 		self.grabbedIcon = None
 		sound.play("release.wav")
+		
+	def isGrabbing(self):
+		return self.grabbedIcon != None
 
 '''
 '
@@ -88,9 +95,6 @@ class InputScheme(QtCore.QObject):
 class LookGrabLookDropScheme(InputScheme):
 	def __init__(self, window):
 		super().__init__(window)
-		
-		from LeapDevice import LeapDevice
-		from peyetribe import EyeTribe
 		
 		self.gestureTracker = LeapDevice()
 		try:
@@ -286,6 +290,48 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def quit(self):
 		self.gestureTracker.exit()
 
+class GazeAndKeyboard(InputScheme):
+	def __init__(self, window):
+		super().__init__(window)
+		
+		try:
+			self.gazeTracker = EyeTribe()		
+			self.gazeTracker.connect()
+		except:
+			print("Could not connect to EyeTribe")
+			
+		window.installEventFilter(self)
+		
+	def eventFilter(self, widget, event):
+		if (event.type() == QtCore.QEvent.KeyPress):
+			key = event.key()
+			print(key)
+			gaze = self.getGaze()
+			if self.isGrabbing():
+				self.doRelease(gaze[0], gaze[1])
+			else:
+				self.doGrab(gaze[0], gaze[1])
+            
+		return QtGui.QWidget.eventFilter(self, widget, event)
+
+	def getGaze(self):
+		gazeFrame = None
+		try:
+			gazeFrame = self.gazeTracker.next()
+		except:
+			print("Could not collect gaze data")
+			
+		#if gazeFrame.state == peyetribe.STATE_TRACKING_GAZE:
+		if gazeFrame != None and gazeFrame.state < 0x8:
+			return (gazeFrame.avg.x, gazeFrame.avg.y)
+		else:
+			sound.play("bummer.wav")
+			pos = QtGui.QCursor.pos()
+			return (pos.x(), pos.y())
+
+	def quit(self):
+		pass
+
 '''
 '
 '''
@@ -327,41 +373,23 @@ class SchemeSelector(QtGui.QWidget):
 		layout = QtGui.QVBoxLayout()
 		self.setLayout(layout)
 		
-		b = QtGui.QPushButton('Look, grab, look, drop')
-		font = b.font()
-		font.setPointSize(18)
-		b.setFont(font)
-		b.clicked.connect(self.startLGLD)
-		layout.addWidget(b)
+		components = [
+			{'scheme':'LookGrabLookDropScheme', 'label': 'Look, grab, look'},
+			{'scheme':'LeapMovesMeScheme', 'label': 'Look, grab, move'},
+			{'scheme':'MouseOnlyScheme', 'label': 'Mouse only'},
+			{'scheme':'LeapOnlyScheme', 'label': 'LEAP only'},
+			{'scheme':'GazeAndKeyboard', 'label': 'Gaze and button'},
+			{'scheme':'GazeOnly', 'label': 'Gaze only'},
+		]
 		
-		b = QtGui.QPushButton('Look, grab, move, drop')
-		b.setFont(font)
-		b.clicked.connect(self.startLGMD)
-		layout.addWidget(b)
+		for component in components:
+			b = QtGui.QPushButton(component['label'])
+			font = b.font()
+			font.setPointSize(18)
+			b.setFont(font)
+			b.clicked.connect(partial(self.startScheme, component['scheme']))
+			layout.addWidget(b)
 		
-		b = QtGui.QPushButton('Mouse only')
-		b.setFont(font)
-		b.clicked.connect(self.startMouseOnly)
-		layout.addWidget(b)
-		
-		b = QtGui.QPushButton('LEAP only')
-		b.setFont(font)
-		b.clicked.connect(self.startLeapOnly)
-		layout.addWidget(b)
-	
-	def startLGLD(self, checked=None):
-		self.selected.emit('LookGrabLookDropScheme')
+	def startScheme(self, scheme):
 		self.destroy()
-		
-	def startLGMD(self, checked=None):
-		self.selected.emit('LeapMovesMeScheme')
-		self.destroy()
-		
-	def startMouseOnly(self, checked=None):
-		self.selected.emit('MouseOnlyScheme')
-		self.destroy()
-		
-	def startLeapOnly(self, checked=None):
-		self.selected.emit('LeapOnlyScheme')
-		self.destroy()
-		
+		self.selected.emit(scheme)

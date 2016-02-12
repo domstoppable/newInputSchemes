@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import subprocess
 from PySide import QtGui, QtCore
 from DragDropUI import *
 from InputScheme import *

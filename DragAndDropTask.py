@@ -4,33 +4,27 @@
 import sys
 from PySide import QtGui, QtCore
 from DragDropUI import *
-from InputScheme import *
+import InputScheme
 
-def main(args=None, scheme=None, app=None):
+def main(args=None, schemeName=None, app=None):
 	try:
 		if app is None:
 			app = QtGui.QApplication(sys.argv)
 
 		window = DragDropTaskWindow()
 		
-		if scheme is None:
-			scheme = args[1]
+		if schemeName is None:
+			schemeName = args[1]
 
-		if scheme == 'LookGrabLookDropScheme':
-			scheme = LookGrabLookDropScheme(window)
-		elif scheme == 'LeapMovesMeScheme':
-			scheme = LeapMovesMeScheme(window)
-		elif scheme == 'MouseOnlyScheme':
-			scheme = MouseOnlyScheme(window)
-		elif scheme == 'LeapOnlyScheme':
-			scheme = LeapOnlyScheme(window)
-		else:
-			raise Exception("Unknown scheme %s" % scheme)
+#		try:
+		scheme = getattr(InputScheme, schemeName)(window)
+#		except:
+#			raise Exception("Unknown scheme %s" % schemeName)
 
 		window.showFullScreen()
 		window.tileSubWindows()
 
-		if scheme in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
+		if schemeName in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
 			window.optionsWindow = LeapOptionsWindow(scheme)
 			window.optionsWindow.scalingChanged.connect(scheme.setScaling)
 			window.optionsWindow.grabThresholdChanged.connect(scheme.setGrabThreshold)
