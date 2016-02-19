@@ -16,8 +16,10 @@ def schemeSelected(schemeName):
 	with open(outputFilename, 'w') as f:
 		with open(errorFilename, 'w') as e:
 			subprocess.call([sys.executable, 'DragAndDropTask.py', schemeName], stdout=f, stderr=e)
+
 	print("\n*** OUTPUT *** ")
 	subprocess.call(['cat', outputFilename])
+
 	print("\n\n*** ERRORS *** ")
 	subprocess.call(['cat', errorFilename])
 
