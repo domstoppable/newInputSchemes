@@ -15,8 +15,10 @@ def main(args=None, schemeName=None, app=None):
 		window = DragDropTaskWindow()
 		
 		def imageMoved(imageName, destination):
-			remainingImageCount = window.imagesWindow.getRemainingImageCount()
+			remainingImageCount = window.getRemainingImageCount()
 			print("Moved %s to %s with %d remaining" % (imageName, destination, remainingImageCount))
+			if remainingImageCount < 1:
+				QtCore.QTimer.singleShot(1000, app.exit)
 			
 		if schemeName is None:
 			schemeName = args[1]

@@ -13,7 +13,7 @@ from peyetribe import EyeTribe
 '
 '''
 class InputScheme(QtCore.QObject):
-	imageMoved = QtCore.Signal(object, object)
+	imageMoved = QtCore.Signal(str, str)
 	def __init__(self, window):
 
 		super().__init__()
@@ -78,7 +78,6 @@ class InputScheme(QtCore.QObject):
 		p.layout().removeWidget(self.grabbedIcon)
 		self.grabbedIcon.setParent(None)
 		
-		print("Emitting")
 		self.imageMoved.emit(self.grabbedIcon.text, folder.text)
 		
 		self.grabbedIcon = None

@@ -30,7 +30,7 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		recursive_set(self)
 	
 	def getRemainingImageCount(self):
-		return self.imagesWindow.layout().count()
+		return self.imagesWindow.getRemainingImageCount()
 	
 	def keyPressEvent(self, event):
 		super().keyPressEvent(event)
@@ -148,10 +148,12 @@ class ImagesWindow(QtGui.QScrollArea):
 			w = IconLayout(image, imageName)
 			layout.addWidget(w)
 
-
 		container.setLayout(layout)
 		self.setWidget(container)
 		self.setWindowTitle('Images')
+		
+	def getRemainingImageCount(self):
+		return self.widget().layout().count()
 		
 class FoldersWindow(QtGui.QScrollArea):
 	def __init__(self):
