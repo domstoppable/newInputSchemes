@@ -78,6 +78,7 @@ class InputScheme(QtCore.QObject):
 		p.layout().removeWidget(self.grabbedIcon)
 		self.grabbedIcon.setParent(None)
 		
+		print("Emitting")
 		self.imageMoved.emit(self.grabbedIcon.text, folder.text)
 		
 		self.grabbedIcon = None
