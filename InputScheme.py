@@ -2,6 +2,9 @@ from PySide import QtGui, QtCore
 from DragDropUI import IconLayout, FolderIcon
 from functools import partial
 import sound
+import time
+
+from selectionDetector import DwellSelect, Point
 
 from LeapDevice import LeapDevice
 from peyetribe import EyeTribe
@@ -10,7 +13,9 @@ from peyetribe import EyeTribe
 '
 '''
 class InputScheme(QtCore.QObject):
+	imageMoved = QtCore.Signal(object, object)
 	def __init__(self, window):
+
 		super().__init__()
 		self.grabbedIcon = None
 		self.destination = None
@@ -18,25 +23,30 @@ class InputScheme(QtCore.QObject):
 
 	def quit(self):
 		pass
-
-	def doGrab(self, x, y):
+		
+	def findWidgetAt(self, x, y):
 		widget = QtGui.QApplication.instance().widgetAt(x, y)
 		while widget != None:
-			if isinstance(widget, IconLayout) and not isinstance(widget, FolderIcon):
-				self.grabImage(widget)
-				return True
+			if isinstance(widget, IconLayout):
+				return widget
 			else:
 				widget = widget.parentWidget()
-		
-		sound.play("bummer.wav")
-		return False
+		return widget
+
+	def doGrab(self, x, y):
+		widget = self.findWidgetAt(x, y)
+		if widget is not None and not isinstance(widget, FolderIcon):
+			self.grabImage(widget)
+			return True
+		else:
+			sound.play("bummer.wav")			
+			return False
 
 	def doRelease(self, x, y):
 		if self.grabbedIcon == None:
 			return False
 
 		widget = QtGui.QApplication.instance().widgetAt(x, y)
-		
 		while widget != None:
 			if isinstance(widget, FolderIcon):
 				self.moveImage(widget)
@@ -68,12 +78,11 @@ class InputScheme(QtCore.QObject):
 		p.layout().removeWidget(self.grabbedIcon)
 		self.grabbedIcon.setParent(None)
 		
-		print("Moved %s to %s" % (self.grabbedIcon.text, folder.text))
+		self.imageMoved.emit(self.grabbedIcon.text, folder.text)
 		
 		self.grabbedIcon = None
 		folder.blink.emit()
 		sound.play("drop.wav")
-
 
 	def releaseImage(self):
 		QtCore.QTimer.singleShot(0, self._releaseImage)
@@ -305,7 +314,6 @@ class GazeAndKeyboard(InputScheme):
 	def eventFilter(self, widget, event):
 		if (event.type() == QtCore.QEvent.KeyPress):
 			key = event.key()
-			print(key)
 			gaze = self.getGaze()
 			if self.isGrabbing():
 				self.doRelease(gaze[0], gaze[1])
@@ -331,6 +339,49 @@ class GazeAndKeyboard(InputScheme):
 
 	def quit(self):
 		pass
+
+class GazeOnly(InputScheme):
+	def __init__(self, window):
+		super().__init__(window)
+		self.timeToStop = False
+		self.detector = DwellSelect(.33, 75)
+
+		try:
+			self.gazeTracker = EyeTribe()		
+			self.gazeTracker.connect()
+		except:
+			print("Could not connect to EyeTribe")
+		
+		self.fixationStartTime = None
+		self.fixationWidget = None
+	
+		self.timer = QtCore.QTimer()
+		self.timer.timeout.connect(self.loop)
+		self.timer.start(1000 / 30)
+
+	def loop(self):
+		gazeFrame = self.gazeTracker.next()
+		if gazeFrame != None and gazeFrame.state < 0x8:
+			currentTime = time.time()
+			point = Point(
+				gazeFrame.avg.x,
+				gazeFrame.avg.y,
+				0,
+				currentTime,
+				gazeFrame.avg
+			)
+			self.detector.addPoint(point)
+			if self.detector.selection != None:
+				selection = self.detector.clearSelection()
+				if self.isGrabbing():
+					print("Release")
+					self.doRelease(selection.x, selection.y)
+				else:
+					print("Grab")
+					self.doGrab(selection.x, selection.y)
+	
+	def quit(self):
+		self.timeToStop = True
 
 '''
 '

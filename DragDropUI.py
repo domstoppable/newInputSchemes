@@ -13,7 +13,8 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
 		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
-		self.addSubWindow(FixedQMDISubWindow(ImagesWindow()))
+		self.imagesWindow = ImagesWindow()
+		self.addSubWindow(FixedQMDISubWindow(self.imagesWindow))
 		
 		self.setMouseTracking(True)
 		
@@ -27,7 +28,10 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 				recursive_set(child)
 		QtGui.QWidget.setMouseTracking(self, flag)
 		recursive_set(self)
-		
+	
+	def getRemainingImageCount(self):
+		return self.imagesWindow.layout().count()
+	
 	def keyPressEvent(self, event):
 		super().keyPressEvent(event)
 		if event.text() == 'o' and self.optionsWindow is not None:

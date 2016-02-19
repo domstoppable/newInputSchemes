@@ -6,6 +6,7 @@ from PySide import QtGui, QtCore
 from DragDropUI import *
 import InputScheme
 
+
 def main(args=None, schemeName=None, app=None):
 	try:
 		if app is None:
@@ -13,13 +14,15 @@ def main(args=None, schemeName=None, app=None):
 
 		window = DragDropTaskWindow()
 		
+		def imageMoved(imageName, destination):
+			remainingImageCount = window.imagesWindow.getRemainingImageCount()
+			print("Moved %s to %s with %d remaining" % (imageName, destination, remainingImageCount))
+			
 		if schemeName is None:
 			schemeName = args[1]
 
-#		try:
 		scheme = getattr(InputScheme, schemeName)(window)
-#		except:
-#			raise Exception("Unknown scheme %s" % schemeName)
+		scheme.imageMoved.connect(imageMoved)
 
 		window.showFullScreen()
 		window.tileSubWindows()

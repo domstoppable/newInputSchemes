@@ -11,7 +11,10 @@ app = QtGui.QApplication(sys.argv)
 
 def schemeSelected(schemeName):
 	app.exit()
-	os.system('pythonw.exe DragAndDropTask.py "%s"' % schemeName)
+	outputFilename = 'output.txt'
+	with open(outputFilename, 'w') as f:
+		subprocess.call(['pythonw.exe', 'DragAndDropTask.py', schemeName], stdout=f)
+	subprocess.call(['cat', outputFilename])
 
 def main(args):
 	window = SchemeSelector()
