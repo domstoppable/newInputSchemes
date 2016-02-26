@@ -1,26 +1,29 @@
-from PySide import QtGui, QtCore
-from DragDropUI import IconLayout, FolderIcon
 from functools import partial
-import sound
-import time
+import time, logging
 
-from selectionDetector import DwellSelect, Point
-
+from PySide import QtGui, QtCore
 from LeapDevice import LeapDevice
 from peyetribe import EyeTribe
+
+from DragDropUI import IconLayout, FolderIcon
+from selectionDetector import DwellSelect, Point
+import sound
 
 '''
 '
 '''
 class InputScheme(QtCore.QObject):
 	imageMoved = QtCore.Signal(str, str)
-	def __init__(self, window):
+	def __init__(self, window=None):
 
 		super().__init__()
 		self.grabbedIcon = None
 		self.destination = None
 		self.window = window
 
+	def setWindow(self, window=None):
+		self.window = window
+		
 	def quit(self):
 		pass
 		
@@ -36,10 +39,12 @@ class InputScheme(QtCore.QObject):
 	def doGrab(self, x, y):
 		widget = self.findWidgetAt(x, y)
 		if widget is not None and not isinstance(widget, FolderIcon):
+			logging.info('Image grabbed %s' % widget.text)
 			self.grabImage(widget)
 			return True
 		else:
-			sound.play("bummer.wav")			
+			logging.info('Grab failure')
+			sound.play('bummer.wav')
 			return False
 
 	def doRelease(self, x, y):
@@ -56,6 +61,8 @@ class InputScheme(QtCore.QObject):
 				
 		if widget == None:
 			self.releaseImage()
+		
+		logging.info('Drop failure')
 			
 		return False
 			
@@ -102,15 +109,16 @@ class InputScheme(QtCore.QObject):
 '
 '''
 class LookGrabLookDropScheme(InputScheme):
-	def __init__(self, window):
+	def __init__(self, window=None):
 		super().__init__(window)
 		
 		self.gestureTracker = LeapDevice()
 		try:
 			self.gazeTracker = EyeTribe()		
 			self.gazeTracker.connect()
-		except:
-			print("Could not connect to EyeTribe")
+		except Exception as exc:
+			logging.critical('Eyetribe error: %s', exc)
+			raise(Exception('Could not connect to EyeTribe'))
 			
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
@@ -129,15 +137,14 @@ class LookGrabLookDropScheme(InputScheme):
 		try:
 			gazeFrame = self.gazeTracker.next()
 		except:
-			print("Could not collect gaze data")
+			logging.warning('Could not collect gaze data')
 			
 		#if gazeFrame.state == peyetribe.STATE_TRACKING_GAZE:
 		if gazeFrame != None and gazeFrame.state < 0x8:
 			return (gazeFrame.avg.x, gazeFrame.avg.y)
 		else:
 			sound.play("bummer.wav")
-			pos = QtGui.QCursor.pos()
-			return (pos.x(), pos.y())
+			return (-300, -300)
 
 	def setScaling(self, value):
 		pass
@@ -155,7 +162,7 @@ class LookGrabLookDropScheme(InputScheme):
 '
 '''
 class LeapMovesMeScheme(LookGrabLookDropScheme):
-	def __init__(self, window):
+	def __init__(self, window=None):
 		super().__init__(window)
 		
 		self.scale = 8.5
@@ -200,7 +207,7 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 '
 '''
 class MouseOnlyScheme(InputScheme):
-	def __init__(self, window):
+	def __init__(self, window=None):
 		super().__init__(window)
 		
 		self.connectEvents()
@@ -214,7 +221,6 @@ class MouseOnlyScheme(InputScheme):
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
 			self.window.mouseMoved.connect(self.move)
-			print("Events connected")
 		
 	def grab(self, obj, mouseEvent):
 		if self.grabbedIcon == None:
@@ -247,7 +253,7 @@ class MouseOnlyScheme(InputScheme):
 '
 '''
 class LeapOnlyScheme(MouseOnlyScheme):
-	def __init__(self, window):
+	def __init__(self, window=None):
 		super().__init__(window)
 
 		from LeapDevice import LeapDevice
@@ -300,14 +306,15 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.exit()
 
 class GazeAndKeyboard(InputScheme):
-	def __init__(self, window):
+	def __init__(self, window=None):
 		super().__init__(window)
 		
 		try:
 			self.gazeTracker = EyeTribe()		
 			self.gazeTracker.connect()
-		except:
-			print("Could not connect to EyeTribe")
+		except Exception as exc:
+			logging.critical('Eyetribe error: %s', exc)
+			raise(Exception('Could not connect to EyeTribe'))
 			
 		window.installEventFilter(self)
 		
@@ -327,7 +334,7 @@ class GazeAndKeyboard(InputScheme):
 		try:
 			gazeFrame = self.gazeTracker.next()
 		except:
-			print("Could not collect gaze data")
+			logging.warning('Could not collect gaze data')
 			
 		#if gazeFrame.state == peyetribe.STATE_TRACKING_GAZE:
 		if gazeFrame != None and gazeFrame.state < 0x8:
@@ -341,7 +348,7 @@ class GazeAndKeyboard(InputScheme):
 		pass
 
 class GazeOnly(InputScheme):
-	def __init__(self, window):
+	def __init__(self, window=None):
 		super().__init__(window)
 		self.timeToStop = False
 		self.detector = DwellSelect(.33, 75)
@@ -349,8 +356,9 @@ class GazeOnly(InputScheme):
 		try:
 			self.gazeTracker = EyeTribe()		
 			self.gazeTracker.connect()
-		except:
-			print("Could not connect to EyeTribe")
+		except Exception as exc:
+			logging.critical('Eyetribe error: %s', exc)
+			raise(Exception('Could not connect to EyeTribe'))
 		
 		self.fixationStartTime = None
 		self.fixationWidget = None
@@ -374,10 +382,8 @@ class GazeOnly(InputScheme):
 			if self.detector.selection != None:
 				selection = self.detector.clearSelection()
 				if self.isGrabbing():
-					print("Release")
 					self.doRelease(selection.x, selection.y)
 				else:
-					print("Grab")
 					self.doGrab(selection.x, selection.y)
 	
 	def quit(self):
@@ -442,5 +448,5 @@ class SchemeSelector(QtGui.QWidget):
 			layout.addWidget(b)
 		
 	def startScheme(self, scheme):
-		self.destroy()
+		self.hide()
 		self.selected.emit(scheme)

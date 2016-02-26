@@ -3,28 +3,40 @@
 
 import sys
 import subprocess
+import logging
+
 from PySide import QtGui, QtCore
+
 from DragDropUI import *
-from InputScheme import *
+import InputScheme
+import DragAndDropTask
+
+logging.basicConfig(
+	format='%(levelname)s %(asctime)s %(message)s',
+	filename='example.log',
+	level=logging.DEBUG,
+)
 
 app = QtGui.QApplication(sys.argv)
+appWindow = None
+scheme = None
 
 def schemeSelected(schemeName):
-	app.exit()
-	outputFilename = 'output.txt'
-	errorFilename = 'error.txt'
-	with open(outputFilename, 'w') as f:
-		with open(errorFilename, 'w') as e:
-			subprocess.call([sys.executable, 'DragAndDropTask.py', schemeName], stdout=f, stderr=e)
-
-	print("\n*** OUTPUT *** ")
-	subprocess.call(['cat', outputFilename])
-
-	print("\n\n*** ERRORS *** ")
-	subprocess.call(['cat', errorFilename])
+	global app, appWindow, scheme
+	# need to keep a handle on the window, or else it will be garbage collected
+	try:
+		scheme = getattr(InputScheme, schemeName)()
+		logging.debug('Loaded scheme %s', schemeName)
+		appWindow = DragAndDropTask.main(scheme, app=app)
+	except Exception as exc:
+		msgBox = QtGui.QMessageBox()
+		msgBox.setText("An error has occurred :(\n\n%s" % exc);
+		msgBox.exec();
+		sys.exit(1)
 
 def main(args):
-	window = SchemeSelector()
+	global app
+	window = InputScheme.SchemeSelector()
 	window.show()
 	window.selected.connect(schemeSelected)
 	app.exec_()

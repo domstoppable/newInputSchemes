@@ -9,14 +9,18 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 	
 	def __init__(self):
 		super().__init__()
+		self.loaded = False
+		print("I am %s" % self)
 		self.optionsWindow = None
 		
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
-		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
+		self.foldersWindow = FoldersWindow()
 		self.imagesWindow = ImagesWindow()
+		self.addSubWindow(FixedQMDISubWindow(self.foldersWindow))
 		self.addSubWindow(FixedQMDISubWindow(self.imagesWindow))
 		
 		self.setMouseTracking(True)
+		self.loaded = True
 		
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -39,9 +43,16 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 
 		
 	def eventFilter(self, obj, event):
+		if not self.loaded:
+			return False
+
+		if obj not in [self.imagesWindow, self.foldersWindow]:
+			return False
+			
 		if event.type() == QtCore.QEvent.Type.MouseMove:
 			self.mouseMoved.emit(obj, event)
 		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
+			print(obj)
 			self.mousePressed.emit(obj, event)
 		elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
 			self.mouseReleased.emit(obj, event)
