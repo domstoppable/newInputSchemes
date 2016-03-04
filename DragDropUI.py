@@ -10,7 +10,6 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 	def __init__(self):
 		super().__init__()
 		self.loaded = False
-		print("I am %s" % self)
 		self.optionsWindow = None
 		
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))

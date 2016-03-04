@@ -265,6 +265,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
+		logging.info("Leap connected")
 		
 		self.mouse = PyMouse()
 		
