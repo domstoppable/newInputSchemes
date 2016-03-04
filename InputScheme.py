@@ -311,14 +311,24 @@ class GazeAndKeyboard(InputScheme):
 			
 		window.installEventFilter(self)
 		
+#	def eventFilter(self, widget, event):
+#		if (event.type() == QtCore.QEvent.KeyPress):
+#			key = event.key()
+#			gaze = self.getGaze()
+#			if self.isGrabbing():
+#				self.doRelease(gaze[0], gaze[1])
+#			else:
+#				self.doGrab(gaze[0], gaze[1])
+#            
+#		return QtGui.QWidget.eventFilter(self, widget, event)
+
 	def eventFilter(self, widget, event):
-		if (event.type() == QtCore.QEvent.KeyPress):
-			key = event.key()
+		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
 			gaze = self.getGaze()
-			if self.isGrabbing():
-				self.doRelease(gaze[0], gaze[1])
-			else:
-				self.doGrab(gaze[0], gaze[1])
+			self.doGrab(gaze[0], gaze[1])
+		elif event.type() == QtCore.QEvent.KeyRelease and not event.isAutoRepeat():
+			gaze = self.getGaze()
+			self.doRelease(gaze[0], gaze[1])
             
 		return QtGui.QWidget.eventFilter(self, widget, event)
 
@@ -329,7 +339,6 @@ class GazeAndKeyboard(InputScheme):
 		except:
 			print("Could not collect gaze data")
 			
-		#if gazeFrame.state == peyetribe.STATE_TRACKING_GAZE:
 		if gazeFrame != None and gazeFrame.state < 0x8:
 			return (gazeFrame.avg.x, gazeFrame.avg.y)
 		else:
