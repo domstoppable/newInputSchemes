@@ -9,14 +9,17 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 	
 	def __init__(self):
 		super().__init__()
+		self.loaded = False
 		self.optionsWindow = None
 		
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
-		self.addSubWindow(FixedQMDISubWindow(FoldersWindow()))
+		self.foldersWindow = FoldersWindow()
 		self.imagesWindow = ImagesWindow()
+		self.addSubWindow(FixedQMDISubWindow(self.foldersWindow))
 		self.addSubWindow(FixedQMDISubWindow(self.imagesWindow))
 		
 		self.setMouseTracking(True)
+		self.loaded = True
 		
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -39,6 +42,12 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 
 		
 	def eventFilter(self, obj, event):
+		if not self.loaded:
+			return False
+
+		if obj not in [self.imagesWindow, self.foldersWindow]:
+			return False
+			
 		if event.type() == QtCore.QEvent.Type.MouseMove:
 			self.mouseMoved.emit(obj, event)
 		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
@@ -237,14 +246,14 @@ class LeapOptionsWindow(QtGui.QWidget):
 		scalingBox.valueChanged.connect(self.emitScaleChange)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
-		grabThresholdBox.setValue(100 * leapDevice.listener.grabThreshold)
+		grabThresholdBox.setValue(100 * leapDevice.grabThreshold)
 		grabThresholdBox.setRange(0, 100)
 		grabThresholdBox.setSingleStep(1)
 		grabThresholdBox.setSuffix("%")
 		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
 		
 		releaseThresholdBox = QtGui.QDoubleSpinBox()
-		releaseThresholdBox.setValue(100 * leapDevice.listener.releaseThreshold)
+		releaseThresholdBox.setValue(100 * leapDevice.releaseThreshold)
 		releaseThresholdBox.setRange(0, 100)
 		releaseThresholdBox.setSingleStep(1)
 		releaseThresholdBox.setSuffix("%")
