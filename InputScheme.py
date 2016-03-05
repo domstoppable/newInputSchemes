@@ -318,18 +318,9 @@ class GazeAndKeyboard(InputScheme):
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
 			
+	def setWindow(self, window):
+		super().setWindow(window)
 		window.installEventFilter(self)
-		
-#	def eventFilter(self, widget, event):
-#		if (event.type() == QtCore.QEvent.KeyPress):
-#			key = event.key()
-#			gaze = self.getGaze()
-#			if self.isGrabbing():
-#				self.doRelease(gaze[0], gaze[1])
-#			else:
-#				self.doGrab(gaze[0], gaze[1])
-#            
-#		return QtGui.QWidget.eventFilter(self, widget, event)
 
 	def eventFilter(self, widget, event):
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
