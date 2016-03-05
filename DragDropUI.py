@@ -51,7 +51,6 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		if event.type() == QtCore.QEvent.Type.MouseMove:
 			self.mouseMoved.emit(obj, event)
 		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
-			print(obj)
 			self.mousePressed.emit(obj, event)
 		elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
 			self.mouseReleased.emit(obj, event)
@@ -247,14 +246,14 @@ class LeapOptionsWindow(QtGui.QWidget):
 		scalingBox.valueChanged.connect(self.emitScaleChange)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
-		grabThresholdBox.setValue(100 * leapDevice.listener.grabThreshold)
+		grabThresholdBox.setValue(100 * leapDevice.grabThreshold)
 		grabThresholdBox.setRange(0, 100)
 		grabThresholdBox.setSingleStep(1)
 		grabThresholdBox.setSuffix("%")
 		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
 		
 		releaseThresholdBox = QtGui.QDoubleSpinBox()
-		releaseThresholdBox.setValue(100 * leapDevice.listener.releaseThreshold)
+		releaseThresholdBox.setValue(100 * leapDevice.releaseThreshold)
 		releaseThresholdBox.setRange(0, 100)
 		releaseThresholdBox.setSingleStep(1)
 		releaseThresholdBox.setSuffix("%")

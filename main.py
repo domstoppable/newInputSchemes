@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, os
 import subprocess
 import logging
 
@@ -12,7 +12,7 @@ import InputScheme
 import DragAndDropTask
 
 logging.basicConfig(
-	format='%(levelname)s %(asctime)s %(message)s',
+	format='%(levelname)-8s %(asctime)s %(message)s',
 	filename='example.log',
 	level=logging.DEBUG,
 )
@@ -32,10 +32,17 @@ def schemeSelected(schemeName):
 		msgBox = QtGui.QMessageBox()
 		msgBox.setText("An error has occurred :(\n\n%s" % exc);
 		msgBox.exec();
+
+		
+		exc_type, exc_obj, exc_tb = sys.exc_info()
+		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+		logging.error(exc_type, fname, exc_tb.tb_lineno)
+		    
 		sys.exit(1)
 
 def main(args):
 	global app
+	logging.info('Main app started')
 	window = InputScheme.SchemeSelector()
 	window.show()
 	window.selected.connect(schemeSelected)

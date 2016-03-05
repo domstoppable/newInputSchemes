@@ -150,10 +150,10 @@ class LookGrabLookDropScheme(InputScheme):
 		pass
 
 	def setGrabThreshold(self, value):
-		self.gestureTracker.listener.grabThreshold = value
+		self.gestureTracker.grabThreshold = value
 
 	def setReleaseThreshold(self, value):
-		self.gestureTracker.listener.releaseThreshold = value
+		self.gestureTracker.releaseThreshold = value
 		
 	def quit(self):
 		self.gestureTracker.exit()
@@ -198,10 +198,10 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 		self.scale = value
 
 	def setGrabThreshold(self, value):
-		self.gestureTracker.listener.grabThreshold = value
+		self.gestureTracker.grabThreshold = value
 
 	def setReleaseThreshold(self, value):
-		self.gestureTracker.listener.releaseThreshold = value
+		self.gestureTracker.releaseThreshold = value
 		
 '''
 '
@@ -265,7 +265,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
-		logging.info("Leap connected")
+		logging.debug('Leap connected')
 		
 		self.mouse = PyMouse()
 		
@@ -286,6 +286,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.mouse.release(location[0], location[1])
 		
 	def moved(self, delta):
+		logging.debug('leap moved')
 		location = self.mouse.position()
 		self.mouse.move(
 			int(location[0] + delta[0] * self.scale),
@@ -298,10 +299,10 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.scale = value
 
 	def setGrabThreshold(self, value):
-		self.gestureTracker.listener.grabThreshold = value
+		self.gestureTracker.grabThreshold = value
 
 	def setReleaseThreshold(self, value):
-		self.gestureTracker.listener.releaseThreshold = value
+		self.gestureTracker.releaseThreshold = value
 
 	def quit(self):
 		self.gestureTracker.exit()

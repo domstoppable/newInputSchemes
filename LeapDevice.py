@@ -1,4 +1,5 @@
 import sys, os, inspect
+import logging
 
 src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 arch_dir = 'lib/x64' if sys.maxsize > 2**32 else 'lib/x86'
@@ -21,15 +22,65 @@ class LeapDevice(QtCore.QObject):
 	
 	def __init__(self):
 		super().__init__()
-		self.controller = controller
-		self.listener = listener
+		self.controller = Leap.Controller()
+		self.controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES);
+		
+		self.grabThreshold = 0.70
+		self.releaseThreshold = 0.50
+	
+		self.leftHand = HandyHand()
+		self.rightHand = HandyHand()
+		
+		self.listening = True
+		self.timer = QtCore.QTimer()
+		self.timer.setSingleShot(False)
+		self.timer.timeout.connect(self.poll)
+		self.timer.start(1.0/30.0)
+    
+	def poll(self):
+		frame = self.controller.frame()
+		hands = frame.hands
+		numHands = len(hands)
+		
+		if len(hands) == 0:
+			self.noHands.emit()
+		else:
+			logging.debug("leap frame %d" % len(hands))
 
-		self.controller.add_listener(self.listener)
-		self.listener.signaler = self
-		
+		for hand in hands:
+			logging.debug("hand %s" % hand)
+			if hand.is_left:
+				if not self.leftHand.isHand(hand):
+					self.handAppeared.emit(hand)
+
+				self.leftHand.setHand(hand)
+				metaHand = self.leftHand
+			else:
+				if not self.rightHand.isHand(hand):
+					self.handAppeared.emit(hand)
+				
+				self.rightHand.setHand(hand)
+				metaHand = self.rightHand
+
+			self.pinchValued.emit(hand.pinch_strength)
+			if not metaHand.grabbing:
+				if hand.pinch_strength >= self.grabThreshold:
+					metaHand.grabbing = True
+					self.grabbed.emit(hand)
+			else:
+				if hand.pinch_strength <= self.releaseThreshold:
+					metaHand.grabbing = False
+					self.released.emit(hand)
+					
+			delta = metaHand.updatePosition()
+			logging.debug(delta)
+			if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
+				self.moved.emit(delta)
+	
 	def exit(self):
-		self.controller.remove_listener(self.listener)
-		
+		print('stop')
+		self.timer.stop()
+
 class HandyHand():
 	def __init__(self):
 		self.hand = None
@@ -42,7 +93,6 @@ class HandyHand():
 			self.updatePosition()
 		else:
 			self.hand = hand
-			
 		
 	def updatePosition(self):
 		newPos = self.hand.stabilized_palm_position
@@ -66,56 +116,3 @@ class HandyHand():
 		if self.hand is None or hand is None: return False
 		return self.hand.id == hand.id
 		
-class Connector(Leap.Listener):
-	def __init__(self):
-		super().__init__()
-		self.grabThreshold = 0.70
-		self.releaseThreshold = 0.50
-	
-		self.signaler = None
-		
-		self.leftHand = HandyHand()
-		self.rightHand = HandyHand()
-		
-	def on_connect(self, controller):
-		print("Gesture tracker connected!")
-		
-	def on_frame(self, controller):
-		frame = controller.frame()
-		hands = frame.hands
-		numHands = len(hands)
-		
-		if len(hands) == 0:
-			self.signaler.noHands.emit()
-
-		for hand in hands:
-			if hand.is_left:
-				if not self.leftHand.isHand(hand):
-					self.signaler.handAppeared.emit(hand)
-
-				self.leftHand.setHand(hand)
-				metaHand = self.leftHand
-			else:
-				if not self.rightHand.isHand(hand):
-					self.signaler.handAppeared.emit(hand)
-				
-				self.rightHand.setHand(hand)
-				metaHand = self.rightHand
-
-			self.signaler.pinchValued.emit(hand.pinch_strength)
-			if not metaHand.grabbing:
-				if hand.pinch_strength >= self.grabThreshold:
-					metaHand.grabbing = True
-					self.signaler.grabbed.emit(hand)
-			else:
-				if hand.pinch_strength <= self.releaseThreshold:
-					metaHand.grabbing = False
-					self.signaler.released.emit(hand)
-					
-			delta = metaHand.updatePosition()
-			if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
-				self.signaler.moved.emit(delta)
-
-controller = Leap.Controller()
-controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES);
-listener = Connector()

@@ -35,7 +35,6 @@ def main(scheme, app=None):
 
 	if forceStart:
 		app.exec_()
-	scheme.quit()
 	return window
 
 if __name__ == '__main__':
