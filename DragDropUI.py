@@ -259,10 +259,10 @@ class LeapOptionsWindow(QtGui.QWidget):
 		releaseThresholdBox.setSuffix("%")
 		releaseThresholdBox.valueChanged.connect(self.emitReleaseThresholdChange)
 		
-		self.currentPinchBox = QtGui.QLabel()
-		self.currentPinchBox.setAlignment(QtCore.Qt.AlignRight)
+		self.currentGrabBox = QtGui.QLabel()
+		self.currentGrabBox.setAlignment(QtCore.Qt.AlignRight)
 		font.setPointSize(24)
-		self.currentPinchBox.setFont(font)
+		self.currentGrabBox.setFont(font)
 
 		
 		layout.addWidget(QtGui.QLabel('Movement scaling'), 0, 0)
@@ -274,11 +274,11 @@ class LeapOptionsWindow(QtGui.QWidget):
 		layout.addWidget(QtGui.QLabel('Release threshold'), 2, 0)
 		layout.addWidget(releaseThresholdBox, 2, 1)
 		
-		layout.addWidget(QtGui.QLabel('Current pinch value'), 3, 0)
-		layout.addWidget(self.currentPinchBox, 3, 1)
+		layout.addWidget(QtGui.QLabel('Current grab value'), 3, 0)
+		layout.addWidget(self.currentGrabBox, 3, 1)
 		
-		leapDevice.pinchValued.connect(self.setPinchValue)
-		leapDevice.noHands.connect(self.setPinchValue)
+		leapDevice.grabValued.connect(self.setGrabValue)
+		leapDevice.noHands.connect(self.setGrabValue)
 		leapDevice.grabbed.connect(self.grabbed)
 		leapDevice.released.connect(self.released)
 		
@@ -292,20 +292,20 @@ class LeapOptionsWindow(QtGui.QWidget):
 		self.releaseThresholdChanged.emit(value / 100)
 		
 	def grabbed(self):
-		font = self.currentPinchBox.font()
+		font = self.currentGrabBox.font()
 		font.setBold(True)
-		self.currentPinchBox.setFont(font)
+		self.currentGrabBox.setFont(font)
 
 	def released(self):
-		font = self.currentPinchBox.font()
+		font = self.currentGrabBox.font()
 		font.setBold(False)
-		self.currentPinchBox.setFont(font)
+		self.currentGrabBox.setFont(font)
 
-	def setPinchValue(self, value=None):
+	def setGrabValue(self, value=None):
 		if value is None:
-			self.currentPinchBox.setText('')
+			self.currentGrabBox.setText('')
 		else:
-			self.currentPinchBox.setText('%.1f%% ' % (100*value))
+			self.currentGrabBox.setText('%.1f%% ' % (100*value))
 		
 if __name__ == '__main__':
 	import sys

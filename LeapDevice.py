@@ -18,15 +18,15 @@ class LeapDevice(QtCore.QObject):
 	grabbed = QtCore.Signal(object)
 	released = QtCore.Signal(object)	
 	moved = QtCore.Signal(object)
-	pinchValued = QtCore.Signal(object)
+	grabValued = QtCore.Signal(object)
 	
 	def __init__(self):
 		super().__init__()
 		self.controller = Leap.Controller()
 		self.controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES);
 		
-		self.grabThreshold = 0.70
-		self.releaseThreshold = 0.50
+		self.grabThreshold = 0.85
+		self.releaseThreshold = 0.70
 	
 		self.leftHand = HandyHand()
 		self.rightHand = HandyHand()
@@ -44,11 +44,8 @@ class LeapDevice(QtCore.QObject):
 		
 		if len(hands) == 0:
 			self.noHands.emit()
-		else:
-			logging.debug("leap frame %d" % len(hands))
 
 		for hand in hands:
-			logging.debug("hand %s" % hand)
 			if hand.is_left:
 				if not self.leftHand.isHand(hand):
 					self.handAppeared.emit(hand)
@@ -62,18 +59,17 @@ class LeapDevice(QtCore.QObject):
 				self.rightHand.setHand(hand)
 				metaHand = self.rightHand
 
-			self.pinchValued.emit(hand.pinch_strength)
+			self.grabValued.emit(hand.grab_strength)
 			if not metaHand.grabbing:
-				if hand.pinch_strength >= self.grabThreshold:
+				if hand.grab_strength >= self.grabThreshold:
 					metaHand.grabbing = True
 					self.grabbed.emit(hand)
 			else:
-				if hand.pinch_strength <= self.releaseThreshold:
+				if hand.grab_strength <= self.releaseThreshold:
 					metaHand.grabbing = False
 					self.released.emit(hand)
 					
 			delta = metaHand.updatePosition()
-			logging.debug(delta)
 			if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
 				self.moved.emit(delta)
 	
