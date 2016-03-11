@@ -218,14 +218,17 @@ class FixedQMDISubWindow(QtGui.QMdiSubWindow):
 class LeapOptionsWindow(QtGui.QWidget):
 	scalingChanged = QtCore.Signal(object)
 	grabThresholdChanged = QtCore.Signal(object)
+	pinchThresholdChanged = QtCore.Signal(object)
 	releaseThresholdChanged = QtCore.Signal(object)
+	unpinchThresholdChanged = QtCore.Signal(object)
 	
 	def __init__(self, scheme):
 		super().__init__()
 		
 		self.setWindowTitle('LEAP Options')
 		
-		leapDevice = scheme.gestureTracker
+		self.leapDevice = scheme.gestureTracker
+		self.calibratingGrab = False
 		
 		font = self.font()
 		font.setStyleHint(QtGui.QFont.Monospace)
@@ -246,14 +249,28 @@ class LeapOptionsWindow(QtGui.QWidget):
 		scalingBox.valueChanged.connect(self.emitScaleChange)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
-		grabThresholdBox.setValue(100 * leapDevice.grabThreshold)
+		grabThresholdBox.setValue(100 * self.leapDevice.grabThreshold)
 		grabThresholdBox.setRange(0, 100)
 		grabThresholdBox.setSingleStep(1)
 		grabThresholdBox.setSuffix("%")
 		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
 		
+		pinchThresholdBox = QtGui.QDoubleSpinBox()
+		pinchThresholdBox.setValue(100 * self.leapDevice.pinchThreshold)
+		pinchThresholdBox.setRange(0, 100)
+		pinchThresholdBox.setSingleStep(1)
+		pinchThresholdBox.setSuffix("%")
+		pinchThresholdBox.valueChanged.connect(self.emitPinchThresholdChange)
+		
+		unpinchThresholdBox = QtGui.QDoubleSpinBox()
+		unpinchThresholdBox.setValue(100 * self.leapDevice.unpinchThreshold)
+		unpinchThresholdBox.setRange(0, 100)
+		unpinchThresholdBox.setSingleStep(1)
+		unpinchThresholdBox.setSuffix("%")
+		unpinchThresholdBox.valueChanged.connect(self.emitUnpinchThresholdChange)
+		
 		releaseThresholdBox = QtGui.QDoubleSpinBox()
-		releaseThresholdBox.setValue(100 * leapDevice.releaseThreshold)
+		releaseThresholdBox.setValue(100 * self.leapDevice.releaseThreshold)
 		releaseThresholdBox.setRange(0, 100)
 		releaseThresholdBox.setSingleStep(1)
 		releaseThresholdBox.setSuffix("%")
@@ -264,23 +281,38 @@ class LeapOptionsWindow(QtGui.QWidget):
 		font.setPointSize(24)
 		self.currentGrabBox.setFont(font)
 
+		self.currentPinchBox = QtGui.QLabel()
+		self.currentPinchBox.setAlignment(QtCore.Qt.AlignLeft)
+		font.setPointSize(24)
+		self.currentPinchBox.setFont(font)
 		
-		layout.addWidget(QtGui.QLabel('Movement scaling'), 0, 0)
-		layout.addWidget(scalingBox, 0, 1)
+		self.calibrateButton = QtGui.QPushButton('Current grab value')
+		self.calibrateButton.setCheckable(True)
+		self.calibrateButton.clicked.connect(self.toggleCalibration)
 		
-		layout.addWidget(QtGui.QLabel('Grab threshold'), 1, 0)
-		layout.addWidget(grabThresholdBox, 1, 1)
+		tableElements = [
+			['Movement scaling', scalingBox],
+			['Grab threshold', grabThresholdBox],
+			['Release threshold', releaseThresholdBox],
+			[self.calibrateButton, self.currentGrabBox],
+			['Pinch threshold', pinchThresholdBox],
+			['Unpinch threshold', unpinchThresholdBox],
+			['Current pinch value', self.currentPinchBox],
+		]
+		for index, elements in enumerate(tableElements):
+			if not isinstance(elements[0], QtGui.QWidget):
+				elements[0] = QtGui.QLabel(elements[0])
+			layout.addWidget(elements[0], index, 0)
+			layout.addWidget(elements[1], index, 1)
+
+		self.leapDevice.grabValued.connect(self.setGrabValue)
+		self.leapDevice.pinchValued.connect(self.setPinchValue)
+		self.leapDevice.noHands.connect(self.setGrabValue)
+		self.leapDevice.grabbed.connect(self.grabbed)
+		self.leapDevice.released.connect(self.released)
 		
-		layout.addWidget(QtGui.QLabel('Release threshold'), 2, 0)
-		layout.addWidget(releaseThresholdBox, 2, 1)
-		
-		layout.addWidget(QtGui.QLabel('Current grab value'), 3, 0)
-		layout.addWidget(self.currentGrabBox, 3, 1)
-		
-		leapDevice.grabValued.connect(self.setGrabValue)
-		leapDevice.noHands.connect(self.setGrabValue)
-		leapDevice.grabbed.connect(self.grabbed)
-		leapDevice.released.connect(self.released)
+	def startGrabCalibration(self):
+		self.calibratingGrab = True
 		
 	def emitScaleChange(self, value):
 		self.scalingChanged.emit(value)
@@ -289,6 +321,12 @@ class LeapOptionsWindow(QtGui.QWidget):
 		self.grabThresholdChanged.emit(value / 100)
 	
 	def emitReleaseThresholdChange(self, value):
+		self.releaseThresholdChanged.emit(value / 100)
+		
+	def emitPinchThresholdChange(self, value):
+		self.grabThresholdChanged.emit(value / 100)
+	
+	def emitUnpinchThresholdChange(self, value):
 		self.releaseThresholdChanged.emit(value / 100)
 		
 	def grabbed(self):
@@ -306,6 +344,16 @@ class LeapOptionsWindow(QtGui.QWidget):
 			self.currentGrabBox.setText('')
 		else:
 			self.currentGrabBox.setText('%.1f%% ' % (100*value))
+	
+	def setPinchValue(self, value=None):
+		if value is None:
+			self.currentPinchBox.setText('')
+		else:
+			self.currentPinchBox.setText('%.1f%% ' % (100*value))
+	
+	def toggleCalibration(self):		
+		self.leapDevice.toggleCalibration()
+		self.calibrateButton.setChecked(self.leapDevice.calibrating)
 		
 if __name__ == '__main__':
 	import sys

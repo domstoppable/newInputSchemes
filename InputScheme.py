@@ -2,8 +2,6 @@ from functools import partial
 import time, logging
 
 from PySide import QtGui, QtCore
-from LeapDevice import LeapDevice
-from peyetribe import EyeTribe
 
 from DragDropUI import IconLayout, FolderIcon
 from selectionDetector import DwellSelect, Point
@@ -110,6 +108,9 @@ class InputScheme(QtCore.QObject):
 '''
 class LookGrabLookDropScheme(InputScheme):
 	def __init__(self, window=None):
+		from LeapDevice import LeapDevice
+		from peyetribe import EyeTribe
+
 		super().__init__(window)
 		
 		self.gestureTracker = LeapDevice()
@@ -163,6 +164,8 @@ class LookGrabLookDropScheme(InputScheme):
 '''
 class LeapMovesMeScheme(LookGrabLookDropScheme):
 	def __init__(self, window=None):
+		from LeapDevice import LeapDevice
+
 		super().__init__(window)
 		
 		self.scale = 8.5
@@ -254,6 +257,8 @@ class MouseOnlyScheme(InputScheme):
 '''
 class LeapOnlyScheme(MouseOnlyScheme):
 	def __init__(self, window=None):
+		from LeapDevice import LeapDevice
+
 		super().__init__(window)
 
 		from LeapDevice import LeapDevice
@@ -309,6 +314,8 @@ class LeapOnlyScheme(MouseOnlyScheme):
 
 class GazeAndKeyboard(InputScheme):
 	def __init__(self, window=None):
+		from peyetribe import EyeTribe
+
 		super().__init__(window)
 		
 		try:
@@ -351,7 +358,10 @@ class GazeAndKeyboard(InputScheme):
 
 class GazeOnly(InputScheme):
 	def __init__(self, window=None):
+		from peyetribe import EyeTribe
+
 		super().__init__(window)
+
 		self.timeToStop = False
 		self.detector = DwellSelect(.33, 75)
 

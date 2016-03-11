@@ -19,14 +19,22 @@ class LeapDevice(QtCore.QObject):
 	released = QtCore.Signal(object)	
 	moved = QtCore.Signal(object)
 	grabValued = QtCore.Signal(object)
+	pinchValued = QtCore.Signal(object)
 	
 	def __init__(self):
 		super().__init__()
 		self.controller = Leap.Controller()
 		self.controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES);
 		
+		self.calibrating = False
+		self.minGrab = 0
+		self.maxGrab = 200
+		
 		self.grabThreshold = 0.85
 		self.releaseThreshold = 0.70
+	
+		self.pinchThreshold = 0.85
+		self.unpinchThreshold = 0.70
 	
 		self.leftHand = HandyHand()
 		self.rightHand = HandyHand()
@@ -59,22 +67,43 @@ class LeapDevice(QtCore.QObject):
 				self.rightHand.setHand(hand)
 				metaHand = self.rightHand
 
-			self.grabValued.emit(hand.grab_strength)
-			if not metaHand.grabbing:
-				if hand.grab_strength >= self.grabThreshold:
-					metaHand.grabbing = True
-					self.grabbed.emit(hand)
+			if self.calibrating:
+				if self.minGrab is None or hand.sphere_radius < self.minGrab:
+					self.minGrab = hand.sphere_radius
+				if self.maxGrab is None or hand.sphere_radius > self.maxGrab:
+					self.maxGrab = hand.sphere_radius					
 			else:
-				if hand.grab_strength <= self.releaseThreshold:
-					metaHand.grabbing = False
-					self.released.emit(hand)
-					
-			delta = metaHand.updatePosition()
-			if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
-				self.moved.emit(delta)
+				grabStrength = (self.maxGrab - hand.sphere_radius) / (self.maxGrab - self.minGrab)
+				self.grabValued.emit(grabStrength)
+				self.pinchValued.emit(hand.pinch_strength)
+				if not metaHand.grabbing:
+					if grabStrength >= self.grabThreshold:
+						metaHand.grabbing = True
+						self.grabbed.emit(hand)
+				else:
+					if grabStrength <= self.releaseThreshold:
+						metaHand.grabbing = False
+						self.released.emit(hand)
+						
+				delta = metaHand.updatePosition()
+				if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
+					self.moved.emit(delta)
+				
+	def toggleCalibration(self):
+		self.setCalibrating(not self.calibrating)
+		
+	def setCalibrating(self, calibrationEnabled):
+		self.calibrating = calibrationEnabled
+		if self.calibrating:
+			self.minGrab = None
+			self.maxGrab = None
+		else:
+			if self.minGrab is None:
+				self.minGrab = 0
+			if self.maxGrab is None:
+				self.maxGrab = 250
 	
 	def exit(self):
-		print('stop')
 		self.timer.stop()
 
 class HandyHand():
