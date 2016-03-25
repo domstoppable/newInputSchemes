@@ -6,6 +6,8 @@ arch_dir = 'lib/x64' if sys.maxsize > 2**32 else 'lib/x86'
 sys.path.insert(0, os.path.abspath(os.path.join(src_dir, 'lib')))
 sys.path.insert(0, os.path.abspath(os.path.join(src_dir, arch_dir)))
 
+import LeapPython
+
 from PySide import QtGui, QtCore
 
 import Leap
@@ -16,6 +18,8 @@ class LeapDevice(QtCore.QObject):
 	handDisappeared = QtCore.Signal(object)
 	noHands = QtCore.Signal()
 	grabbed = QtCore.Signal(object)
+	pinched = QtCore.Signal(object)
+	unpinched = QtCore.Signal(object)
 	released = QtCore.Signal(object)	
 	moved = QtCore.Signal(object)
 	grabValued = QtCore.Signal(object)
@@ -85,6 +89,15 @@ class LeapDevice(QtCore.QObject):
 						metaHand.grabbing = False
 						self.released.emit(hand)
 						
+				if not metaHand.pinching:
+					if hand.pinch_strength >= self.pinchThreshold:
+						metaHand.pinching = True
+						self.pinched.emit(hand)
+				else:
+					if hand.pinch_strength <= self.unpinchThreshold:
+						metaHand.pinching = False
+						self.unpinched.emit(hand)
+						
 				delta = metaHand.updatePosition()
 				if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
 					self.moved.emit(delta)
@@ -110,6 +123,7 @@ class HandyHand():
 	def __init__(self):
 		self.hand = None
 		self.grabbing = False
+		self.pinching = False
 		self.position = [-1, -1, -1]
 		
 	def setHand(self, hand):

@@ -15,7 +15,7 @@ class InputScheme(QtCore.QObject):
 	def __init__(self, window=None):
 
 		super().__init__()
-		self.grabbedIcon = None
+		self.grabbedIcons = []
 		self.destination = None
 		self.window = window
 
@@ -46,62 +46,75 @@ class InputScheme(QtCore.QObject):
 			return False
 
 	def doRelease(self, x, y):
-		if self.grabbedIcon == None:
+		if len(self.grabbedIcons) == 0:
+			print("Nothing to release")
 			return False
+		else:
+			print("doRelease")
 
 		widget = QtGui.QApplication.instance().widgetAt(x, y)
 		while widget != None:
 			if isinstance(widget, FolderIcon):
-				self.moveImage(widget)
+				print("Moving images to folder")
+				self.moveImages(widget)
 				return True
 			else:
 				widget = widget.parentWidget()
 				
-		if widget == None:
-			self.releaseImage()
+		self.releaseImages()
 		
 		logging.info('Drop failure')
 			
 		return False
 			
 	def grabImage(self, image):
-		self.grabbedIcon = image
-		self.grabbedIcon._highlight()
+		# only allow one image to be grabbed for now...
+		for icon in self.grabbedIcons:
+			icon._unhighlight()
+		del self.grabbedIcons[:]
+		
+		image._highlight()
+		self.grabbedIcons.append(image)
 		
 		sound.play("select.wav")
 		
-	def moveImage(self, folder):
+	def moveImages(self, folder):
 		self.destination = folder
-		QtCore.QTimer.singleShot(0, self._moveImage)
+		QtCore.QTimer.singleShot(0, self._moveImages)
 		
-	def _moveImage(self):
+	def _moveImages(self):
 		folder = self.destination
-		if self.grabbedIcon == None:
+		if len(self.grabbedIcons) == 0:
 			return
 
-		p = self.grabbedIcon.parentWidget()
-		p.layout().removeWidget(self.grabbedIcon)
-		self.grabbedIcon.setParent(None)
+		for icon in self.grabbedIcons:
+			p = icon.parentWidget()
+			if p is not None:
+				p.layout().removeWidget(icon)
+				icon.setParent(None)
+			icon._unhighlight()
+			self.imageMoved.emit(icon.text, folder.text)
 		
-		self.imageMoved.emit(self.grabbedIcon.text, folder.text)
+		self.grabbedIcons = []
 		
-		self.grabbedIcon = None
 		folder.blink.emit()
 		sound.play("drop.wav")
 
-	def releaseImage(self):
-		QtCore.QTimer.singleShot(0, self._releaseImage)
+	def releaseImages(self):
+		QtCore.QTimer.singleShot(0, self._releaseImages)
 		
-	def _releaseImage(self):
-		if self.grabbedIcon == None:
+	def _releaseImages(self):
+		print('_releaseImages %s ' % len(self.grabbedIcons))
+		if len(self.grabbedIcons) == 0:
 			return
-			
-		self.grabbedIcon.unhighlight.emit()
-		self.grabbedIcon = None
+		
+		for icon in self.grabbedIcons:
+			icon._unhighlight()
+
 		sound.play("release.wav")
 		
 	def isGrabbing(self):
-		return self.grabbedIcon != None
+		return len(self.grabbedIcons) > 0
 
 '''
 '
@@ -175,8 +188,8 @@ class LeapMovesMeScheme(LookGrabLookDropScheme):
 	def grabbed(self, hand):
 		super().grabbed(hand)
 		
-		if self.grabbedIcon != None:
-			self.floatingIcon = DraggingIcon(self.grabbedIcon, self.window)
+		if len(self.grabbedIcons) == 1:
+			self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
 
 	def released(self, hand):
 		if self.floatingIcon == None:
@@ -226,23 +239,30 @@ class MouseOnlyScheme(InputScheme):
 			self.window.mouseMoved.connect(self.move)
 		
 	def grab(self, obj, mouseEvent):
-		if self.grabbedIcon == None:
-			pos = obj.mapToGlobal(mouseEvent.pos())
-			if self.doGrab(pos.x(), pos.y()):
-				self.floatingIcon = DraggingIcon(self.grabbedIcon, self.window, mouseEvent.pos())
+		pos = obj.mapToGlobal(mouseEvent.pos())
+		if self.doGrab(pos.x(), pos.y()):
+			if len(self.grabbedIcons) == 1:
+				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window, mouseEvent.pos())
 				self.mouseStartPoint = mouseEvent.pos()
 				self.move(obj, mouseEvent)
+				print(self.floatingIcon)
 				
 	def release(self, obj, mouseEvent):
-		if self.floatingIcon == None:
-			return
-		pos = obj.mapToGlobal(mouseEvent.pos())
-		self.floatingIcon.hide()
+#		if self.floatingIcon == None:
+#			return
+			
+		modifiers = QtGui.QApplication.keyboardModifiers()
+		if modifiers == QtCore.Qt.ControlModifier:
+			print('not done yet')
+		else:
+			pos = obj.mapToGlobal(mouseEvent.pos())
+			if self.floatingIcon != None:
+				self.floatingIcon.hide()
+				self.floatingIcon.close()
+				self.floatingIcon = None
 
-		self.doRelease(pos.x(), pos.y())
-		
-		self.floatingIcon.close()
-		self.floatingIcon = None
+			self.doRelease(pos.x(), pos.y())
+			
 		
 	def move(self, obj, mouseEvent):
 		if self.floatingIcon:
@@ -267,7 +287,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.scale = 8.5
 		
 		self.gestureTracker = LeapDevice()
-		self.gestureTracker.grabbed.connect(self.grabbed)
+		self.gestureTracker.pinched.connect(self.pinched)
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
 		logging.debug('Leap connected')
@@ -275,14 +295,17 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.mouse = PyMouse()
 		
 	def grab(self, obj, mouseEvent):
-		if self.grabbedIcon == None:
-			pos = obj.mapToGlobal(mouseEvent.pos())
-			if self.doGrab(pos.x(), pos.y()):
-				self.floatingIcon = DraggingIcon(self.grabbedIcon, self.window, mouseEvent.pos())
+		pos = obj.mapToGlobal(mouseEvent.pos())
+		if self.doGrab(pos.x(), pos.y()):
+			if len(self.grabbedIcons) == 1:
+				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window, mouseEvent.pos())
 				self.mouseStartPoint = mouseEvent.pos()
 				self.move(obj, mouseEvent)
 						
 	def grabbed(self, hand):
+		pass
+		
+	def pinched(self, hand):
 		location = self.mouse.position()
 		self.mouse.press(location[0], location[1])
 
