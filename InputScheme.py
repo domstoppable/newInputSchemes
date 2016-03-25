@@ -47,15 +47,11 @@ class InputScheme(QtCore.QObject):
 
 	def doRelease(self, x, y):
 		if len(self.grabbedIcons) == 0:
-			print("Nothing to release")
 			return False
-		else:
-			print("doRelease")
 
 		widget = QtGui.QApplication.instance().widgetAt(x, y)
 		while widget != None:
 			if isinstance(widget, FolderIcon):
-				print("Moving images to folder")
 				self.moveImages(widget)
 				return True
 			else:
@@ -104,7 +100,6 @@ class InputScheme(QtCore.QObject):
 		QtCore.QTimer.singleShot(0, self._releaseImages)
 		
 	def _releaseImages(self):
-		print('_releaseImages %s ' % len(self.grabbedIcons))
 		if len(self.grabbedIcons) == 0:
 			return
 		
@@ -245,23 +240,16 @@ class MouseOnlyScheme(InputScheme):
 				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window, mouseEvent.pos())
 				self.mouseStartPoint = mouseEvent.pos()
 				self.move(obj, mouseEvent)
-				print(self.floatingIcon)
 				
-	def release(self, obj, mouseEvent):
-#		if self.floatingIcon == None:
-#			return
-			
-		modifiers = QtGui.QApplication.keyboardModifiers()
-		if modifiers == QtCore.Qt.ControlModifier:
-			print('not done yet')
-		else:
-			pos = obj.mapToGlobal(mouseEvent.pos())
-			if self.floatingIcon != None:
-				self.floatingIcon.hide()
-				self.floatingIcon.close()
-				self.floatingIcon = None
+	def release(self, obj=None, mouseEvent=None, position=None):
+		if position is None:
+			position = obj.mapToGlobal(mouseEvent.pos())
+		if self.floatingIcon != None:
+			self.floatingIcon.hide()
+			self.floatingIcon.close()
+			self.floatingIcon = None
 
-			self.doRelease(pos.x(), pos.y())
+		self.doRelease(position.x(), position.y())
 			
 		
 	def move(self, obj, mouseEvent):
@@ -287,7 +275,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.scale = 8.5
 		
 		self.gestureTracker = LeapDevice()
-		self.gestureTracker.pinched.connect(self.pinched)
+		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
 		logging.debug('Leap connected')
@@ -303,15 +291,13 @@ class LeapOnlyScheme(MouseOnlyScheme):
 				self.move(obj, mouseEvent)
 						
 	def grabbed(self, hand):
-		pass
-		
-	def pinched(self, hand):
 		location = self.mouse.position()
 		self.mouse.press(location[0], location[1])
 
 	def released(self, hand):
 		location = self.mouse.position()
 		self.mouse.release(location[0], location[1])
+		self.release(position=location)
 		
 	def moved(self, delta):
 		logging.debug('leap moved')
