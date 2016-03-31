@@ -244,12 +244,13 @@ class MouseOnlyScheme(InputScheme):
 	def release(self, obj=None, mouseEvent=None, position=None):
 		if position is None:
 			position = obj.mapToGlobal(mouseEvent.pos())
+			position = [position.x(), position.y()]
 		if self.floatingIcon != None:
 			self.floatingIcon.hide()
 			self.floatingIcon.close()
 			self.floatingIcon = None
 
-		self.doRelease(position.x(), position.y())
+		self.doRelease(position[0], position[1])
 			
 		
 	def move(self, obj, mouseEvent):
@@ -300,7 +301,6 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.release(position=location)
 		
 	def moved(self, delta):
-		logging.debug('leap moved')
 		location = self.mouse.position()
 		self.mouse.move(
 			int(location[0] + delta[0] * self.scale),
