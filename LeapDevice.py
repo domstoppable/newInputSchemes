@@ -31,11 +31,11 @@ class LeapDevice(QtCore.QObject):
 		self.controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES);
 		
 		self.calibrating = False
-		self.minGrab = 0
-		self.maxGrab = 200
+		self.minGrab = 30
+		self.maxGrab = 450
 		
-		self.grabThreshold = 0.85
-		self.releaseThreshold = 0.70
+		self.grabThreshold = 0.96
+		self.releaseThreshold = 0.94
 	
 		self.pinchThreshold = 0.85
 		self.unpinchThreshold = 0.70
@@ -114,7 +114,8 @@ class LeapDevice(QtCore.QObject):
 			if self.minGrab is None:
 				self.minGrab = 0
 			if self.maxGrab is None:
-				self.maxGrab = 250
+				self.maxGrab = 400
+			logging.info("Calibrated to: %d - %d" % (self.minGrab, self.maxGrab))
 	
 	def exit(self):
 		self.timer.stop()
