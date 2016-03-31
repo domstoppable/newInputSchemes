@@ -152,7 +152,7 @@ class ImagesWindow(QtGui.QScrollArea):
 		images = [ f for f in os.listdir(imagePath) if os.path.isfile(os.path.join(imagePath,f)) ]
 		random.shuffle(images)
 		for imageName in images:
-			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(150, 150)
+			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(200, 200)
 
 			w = IconLayout(image, imageName)
 			layout.addWidget(w)
@@ -172,9 +172,9 @@ class FoldersWindow(QtGui.QScrollArea):
 
 	def initUI(self):
 		container = QtGui.QWidget()
-		layout = FlowLayout()
+		layout = FlowLayout(spacing=30)
 		
-		image = QtGui.QImage('assets/folder.png').scaled(150, 150)
+		image = QtGui.QImage('assets/folder.svg').scaled(200, 200)
 		folderNames = [
 			'Cats', 'Cows', 'Dogs', 'Pigs',
 			'Rabbits', 'Birds', 'Bugs', 'Vacation',
