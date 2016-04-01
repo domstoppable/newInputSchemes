@@ -222,6 +222,8 @@ class InputFeedbackWindow(QtGui.QWidget):
 	def __init__(self):
 		super().__init__()
 		self.layout = QtGui.QHBoxLayout()
+		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+
 		self.setLayout(self.layout)
 		
 		self.eyeWidget = None
@@ -229,13 +231,16 @@ class InputFeedbackWindow(QtGui.QWidget):
 		
 		self.eyeImages = None
 		self.handImages = None
-	
+		
+		self.eyeGood = False
+		self.handGood = False
+		self.handOpen = True
+
 	def showEye(self):
 		self.eyeImages = {
-			True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eyeGood.svg')),
-			False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eyeBad.svg'))
+			True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-good.svg')),
+			False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-bad.svg'))
 		}
-		self.eyeGood = False
 		self.eyeWidget = QtGui.QLabel()
 		self.eyeWidget.setAlignment(QtCore.Qt.AlignCenter)
 		self.layout.addWidget(self.eyeWidget)
@@ -253,8 +258,6 @@ class InputFeedbackWindow(QtGui.QWidget):
 				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-bad.svg')),
 			},
 		}
-		self.handGood = False
-		self.handOpen = False
 		self.handWidget = QtGui.QLabel()
 		self.handWidget.setAlignment(QtCore.Qt.AlignCenter)
 		self.layout.addWidget(self.handWidget)
@@ -264,7 +267,7 @@ class InputFeedbackWindow(QtGui.QWidget):
 	def _updateIcons(self):
 		if self.eyeWidget is not None:
 			self.eyeWidget.setPixmap(self.eyeImages[self.eyeGood])
-				
+		
 		if self.handWidget is not None:
 			self.handWidget.setPixmap(self.handImages[self.handGood][self.handOpen])
 			
