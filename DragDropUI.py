@@ -59,6 +59,12 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 			self.mouseReleased.emit(obj, event)
 			
 		return False
+		
+	def closeEvent(self, e):
+		if self.optionsWindow:
+			self.optionsWindow.close()
+		if self.feedbackWindow:
+			self.feedbackWindow.close()
 
 class IconLayout(QtGui.QWidget):
 	highlight = QtCore.Signal()
@@ -200,7 +206,6 @@ class FixedQMDISubWindow(QtGui.QMdiSubWindow):
 		self.resizeCount = 0
 		self.lockedSize = None
 		self.lockedPosition = None
-#		self.windowStateChanged.connect(self.stateChanged)
 		self.setWindowFlags(QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint)
 		
 	def moveEvent(self, event):
@@ -221,8 +226,11 @@ class FixedQMDISubWindow(QtGui.QMdiSubWindow):
 class InputFeedbackWindow(QtGui.QWidget):
 	def __init__(self):
 		super().__init__()
-		self.layout = QtGui.QHBoxLayout()
-		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+		self.layout = QtGui.QVBoxLayout()
+		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
+		#self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+		self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+
 
 		self.setLayout(self.layout)
 		
@@ -235,6 +243,13 @@ class InputFeedbackWindow(QtGui.QWidget):
 		self.eyeGood = False
 		self.handGood = False
 		self.handOpen = True
+		
+	def resizeEvent(self, e):
+		desktopSize = QtGui.QDesktopWidget().screenGeometry()
+		self.move(
+			(desktopSize.width() - self.size().width()) / 2,
+			desktopSize.height() - self.size().height()
+		)
 
 	def showEye(self):
 		self.eyeImages = {

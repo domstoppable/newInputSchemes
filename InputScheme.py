@@ -220,6 +220,11 @@ class MouseOnlyScheme(InputScheme):
 		self.floatingIcon = None
 		self.mouseStartPoint = None
 		
+	def setWindow(self, window):
+		super().setWindow(window)
+		if type(self) == MouseOnlyScheme:
+			window.feedbackWindow.close()
+		
 	def connectEvents(self):
 		if self.window == None:
 			QtCore.QTimer.singleShot(100, self.connectEvents)
