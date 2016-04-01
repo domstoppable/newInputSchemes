@@ -48,16 +48,16 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		if not self.loaded:
 			return False
 
-		if obj not in [self.imagesWindow, self.foldersWindow]:
-			return False
-			
 		if event.type() == QtCore.QEvent.Type.MouseMove:
 			self.mouseMoved.emit(obj, event)
+			return True
 		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
 			self.mousePressed.emit(obj, event)
+			return True
 		elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
 			self.mouseReleased.emit(obj, event)
-			
+			return True
+
 		return False
 		
 	def closeEvent(self, e):
@@ -226,11 +226,11 @@ class FixedQMDISubWindow(QtGui.QMdiSubWindow):
 class InputFeedbackWindow(QtGui.QWidget):
 	def __init__(self):
 		super().__init__()
+		
 		self.layout = QtGui.QVBoxLayout()
 		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
-		#self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 		self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-
+		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
 
 		self.setLayout(self.layout)
 		
