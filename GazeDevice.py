@@ -27,7 +27,7 @@ class GazeDevice(QtCore.QObject):
 		self.tracker.pullmode()
 
 		self.detector = DwellSelect(.33, 75)
-		self.gazePosition = None
+		self.gazePosition = [-1, -1]
 		self.lastFixation = None
 		self.sawEyesLastTime = False
 		
