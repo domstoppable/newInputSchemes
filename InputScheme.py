@@ -4,7 +4,6 @@ import time, logging
 from PySide import QtGui, QtCore
 
 from DragDropUI import IconLayout, FolderIcon
-from selectionDetector import DwellSelect, Point
 import sound
 
 '''
@@ -117,14 +116,13 @@ class InputScheme(QtCore.QObject):
 class LookGrabLookDropScheme(InputScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
-		from peyetribe import EyeTribe
+		from GazeDevice import GazeDevice
 
 		super().__init__(window)
 		
 		self.gestureTracker = LeapDevice()
 		try:
-			self.gazeTracker = EyeTribe()		
-			self.gazeTracker.connect()
+			self.gazeTracker = GazeDevice()
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -141,29 +139,16 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
 		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
-		# @TODO: set eye feedback
+		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
-		gaze = self.getGaze()
+		gaze = self.gazeTracker.getGaze()
 		self.doGrab(gaze[0], gaze[1])
 		
 	def released(self, hand):
-		gaze = self.getGaze()
+		gaze = self.gazeTracker.getGaze()
 		self.doRelease(gaze[0], gaze[1])
-
-	def getGaze(self):
-		gazeFrame = None
-		try:
-			gazeFrame = self.gazeTracker.next()
-		except:
-			logging.warning('Could not collect gaze data')
-			
-		#if gazeFrame.state == peyetribe.STATE_TRACKING_GAZE:
-		if gazeFrame != None and gazeFrame.state < 0x8:
-			return (gazeFrame.avg.x, gazeFrame.avg.y)
-		else:
-			sound.play("bummer.wav")
-			return (-300, -300)
 
 	def setScaling(self, value):
 		pass
@@ -342,13 +327,12 @@ class LeapOnlyScheme(MouseOnlyScheme):
 
 class GazeAndKeyboard(InputScheme):
 	def __init__(self, window=None):
-		from peyetribe import EyeTribe
+		from GazeDevice import GazeDevice
 
 		super().__init__(window)
 		
 		try:
-			self.gazeTracker = EyeTribe()		
-			self.gazeTracker.connect()
+			self.gazeTracker = GazeDevice()
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -357,84 +341,49 @@ class GazeAndKeyboard(InputScheme):
 		super().setWindow(window)
 		window.installEventFilter(self)
 		window.feedbackWindow.showEye()
-		# @TODO: set eye feedback
+		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def eventFilter(self, widget, event):
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
-			gaze = self.getGaze()
+			gaze = self.gazeTracker.getGaze()
 			self.doGrab(gaze[0], gaze[1])
 		elif event.type() == QtCore.QEvent.KeyRelease and not event.isAutoRepeat():
-			gaze = self.getGaze()
+			gaze = self.gazeTracker.getGaze()
 			self.doRelease(gaze[0], gaze[1])
             
 		return QtGui.QWidget.eventFilter(self, widget, event)
-
-	def getGaze(self):
-		gazeFrame = None
-		try:
-			gazeFrame = self.gazeTracker.next()
-		except:
-			logging.warning('Could not collect gaze data')
-			
-		if gazeFrame != None and gazeFrame.state < 0x8:
-			return (gazeFrame.avg.x, gazeFrame.avg.y)
-		else:
-			sound.play("bummer.wav")
-			pos = QtGui.QCursor.pos()
-			return (pos.x(), pos.y())
 
 	def quit(self):
 		pass
 
 class GazeOnly(InputScheme):
 	def __init__(self, window=None):
-		from peyetribe import EyeTribe
+		from GazeDevice import GazeDevice
 
 		super().__init__(window)
 
-		self.timeToStop = False
-		self.detector = DwellSelect(.33, 75)
-
 		try:
-			self.gazeTracker = EyeTribe()		
-			self.gazeTracker.connect()
+			self.gazeTracker = GazeDevice()
+			self.gazeTracker.fixated.connect(self.onFixate)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
-		
-		self.fixationStartTime = None
-		self.fixationWidget = None
-	
-		self.timer = QtCore.QTimer()
-		self.timer.timeout.connect(self.loop)
-		self.timer.start(1000 / 30)
 
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.feedbackWindow.showEye()
-		# @TODO: set eye feedback
-
-	def loop(self):
-		gazeFrame = self.gazeTracker.next()
-		if gazeFrame != None and gazeFrame.state < 0x8:
-			currentTime = time.time()
-			point = Point(
-				gazeFrame.avg.x,
-				gazeFrame.avg.y,
-				0,
-				currentTime,
-				gazeFrame.avg
-			)
-			self.detector.addPoint(point)
-			if self.detector.selection != None:
-				selection = self.detector.clearSelection()
-				if self.isGrabbing():
-					self.doRelease(selection.x, selection.y)
-				else:
-					self.doGrab(selection.x, selection.y)
-	
+		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
+		
+	def onFixate(self, position):
+		if not self.isGrabbing():
+			self.doGrab(position.x, position.y)
+		else:
+			self.doRelease(position.x, position.y)
+		
 	def quit(self):
-		self.timeToStop = True
+		self.gazeTracker.exit()
 
 '''
 '
