@@ -1,3 +1,4 @@
+import logging
 import os, random
 from PySide import QtGui, QtCore
 from FlowLayout import *
@@ -11,6 +12,7 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		super().__init__()
 		self.loaded = False
 		self.optionsWindow = None
+		self.feedbackWindow = InputFeedbackWindow()
 		
 		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
 		self.foldersWindow = FoldersWindow()
@@ -20,6 +22,8 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		
 		self.setMouseTracking(True)
 		self.loaded = True
+		
+		self.feedbackWindow.show()
 		
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -39,7 +43,6 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		super().keyPressEvent(event)
 		if event.text() == 'o' and self.optionsWindow is not None:
 			self.optionsWindow.show()
-
 		
 	def eventFilter(self, obj, event):
 		if not self.loaded:
@@ -214,7 +217,87 @@ class FixedQMDISubWindow(QtGui.QMdiSubWindow):
 			self.lockedPosition = self.pos()
 		else:
 			self.resize(self.lockedSize)
+
+class InputFeedbackWindow(QtGui.QWidget):
+	def __init__(self):
+		super().__init__()
+		self.layout = QtGui.QHBoxLayout()
+		self.setLayout(self.layout)
 		
+		self.eyeWidget = None
+		self.handWidget = None
+		
+		self.eyeImages = None
+		self.handImages = None
+	
+	def showEye(self):
+		self.eyeImages = {
+			True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eyeGood.svg')),
+			False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eyeBad.svg'))
+		}
+		self.eyeGood = False
+		self.eyeWidget = QtGui.QLabel()
+		self.eyeWidget.setAlignment(QtCore.Qt.AlignCenter)
+		self.layout.addWidget(self.eyeWidget)
+
+		self._updateIcons()
+
+	def showHand(self):
+		self.handImages = {
+			True: {
+				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-good.svg')),
+				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-good.svg')),
+			},
+			False: {
+				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-bad.svg')),
+				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-bad.svg')),
+			},
+		}
+		self.handGood = False
+		self.handOpen = False
+		self.handWidget = QtGui.QLabel()
+		self.handWidget.setAlignment(QtCore.Qt.AlignCenter)
+		self.layout.addWidget(self.handWidget)
+			
+		self._updateIcons()
+	
+	def _updateIcons(self):
+		if self.eyeWidget is not None:
+			self.eyeWidget.setPixmap(self.eyeImages[self.eyeGood])
+				
+		if self.handWidget is not None:
+			self.handWidget.setPixmap(self.handImages[self.handGood][self.handOpen])
+			
+	def setHandGood(self):
+		logging.debug("Hand good")
+		self.handGood = True
+		self._updateIcons()
+	
+	def setHandBad(self):
+		logging.debug("Hand bad")
+		self.handGood = False
+		self._updateIcons()
+	
+	def setHandOpen(self):
+		logging.debug("Hand open")
+		self.handOpen = True
+		self._updateIcons()
+	
+	def setHandClosed(self):
+		logging.debug("Hand closed")
+		self.handOpen = False
+		self._updateIcons()
+
+	def setEyeGood(self):
+		logging.debug("Eyes good")
+		self.eyeGood = True
+		self._updateIcons()
+		
+	def setEyeBad(self):
+		logging.debug("Eyes bad")
+		self.eyeGood = False
+		self._updateIcons()
+
 class LeapOptionsWindow(QtGui.QWidget):
 	scalingChanged = QtCore.Signal(object)
 	grabThresholdChanged = QtCore.Signal(object)

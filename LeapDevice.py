@@ -15,7 +15,7 @@ from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
 
 class LeapDevice(QtCore.QObject):
 	handAppeared = QtCore.Signal(object)
-	handDisappeared = QtCore.Signal(object)
+	handDisappeared = QtCore.Signal(object)	# @TODO make this work
 	noHands = QtCore.Signal()
 	grabbed = QtCore.Signal(object)
 	pinched = QtCore.Signal(object)
@@ -48,6 +48,8 @@ class LeapDevice(QtCore.QObject):
 		self.timer.setSingleShot(False)
 		self.timer.timeout.connect(self.poll)
 		self.timer.start(1.0/30.0)
+		
+		self.sawHandLastTime = False
     
 	def poll(self):
 		frame = self.controller.frame()
@@ -55,53 +57,56 @@ class LeapDevice(QtCore.QObject):
 		numHands = len(hands)
 		
 		if len(hands) == 0:
-			self.noHands.emit()
+			if self.sawHandLastTime:
+				self.noHands.emit()
+			self.sawHandLastTime = False
+		else:
+			for hand in hands:
+				if hand.is_left:
+					if not self.leftHand.isHand(hand) and not self.sawHandLastTime:
+						self.handAppeared.emit(hand)
 
-		for hand in hands:
-			if hand.is_left:
-				if not self.leftHand.isHand(hand):
-					self.handAppeared.emit(hand)
-
-				self.leftHand.setHand(hand)
-				metaHand = self.leftHand
-			else:
-				if not self.rightHand.isHand(hand):
-					self.handAppeared.emit(hand)
-				
-				self.rightHand.setHand(hand)
-				metaHand = self.rightHand
-
-			if self.calibrating:
-				if self.minGrab is None or hand.sphere_radius < self.minGrab:
-					self.minGrab = hand.sphere_radius
-				if self.maxGrab is None or hand.sphere_radius > self.maxGrab:
-					self.maxGrab = hand.sphere_radius					
-			else:
-				grabStrength = (self.maxGrab - hand.sphere_radius) / (self.maxGrab - self.minGrab)
-				self.grabValued.emit(grabStrength)
-				self.pinchValued.emit(hand.pinch_strength)
-				if not metaHand.grabbing:
-					if grabStrength >= self.grabThreshold:
-						metaHand.grabbing = True
-						self.grabbed.emit(hand)
+					self.leftHand.setHand(hand)
+					metaHand = self.leftHand
 				else:
-					if grabStrength <= self.releaseThreshold:
-						metaHand.grabbing = False
-						self.released.emit(hand)
-						
-				if not metaHand.pinching:
-					if hand.pinch_strength >= self.pinchThreshold:
-						metaHand.pinching = True
-						self.pinched.emit(hand)
+					if not self.rightHand.isHand(hand) and not self.sawHandLastTime:
+						self.handAppeared.emit(hand)
+					
+					self.rightHand.setHand(hand)
+					metaHand = self.rightHand
+				self.sawHandLastTime = True
+
+				if self.calibrating:
+					if self.minGrab is None or hand.sphere_radius < self.minGrab:
+						self.minGrab = hand.sphere_radius
+					if self.maxGrab is None or hand.sphere_radius > self.maxGrab:
+						self.maxGrab = hand.sphere_radius					
 				else:
-					if hand.pinch_strength <= self.unpinchThreshold:
-						metaHand.pinching = False
-						self.unpinched.emit(hand)
-						
-				delta = metaHand.updatePosition()
-				if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
-					self.moved.emit(delta)
-				
+					grabStrength = (self.maxGrab - hand.sphere_radius) / (self.maxGrab - self.minGrab)
+					self.grabValued.emit(grabStrength)
+					self.pinchValued.emit(hand.pinch_strength)
+					if not metaHand.grabbing:
+						if grabStrength >= self.grabThreshold:
+							metaHand.grabbing = True
+							self.grabbed.emit(hand)
+					else:
+						if grabStrength <= self.releaseThreshold:
+							metaHand.grabbing = False
+							self.released.emit(hand)
+							
+					if not metaHand.pinching:
+						if hand.pinch_strength >= self.pinchThreshold:
+							metaHand.pinching = True
+							self.pinched.emit(hand)
+					else:
+						if hand.pinch_strength <= self.unpinchThreshold:
+							metaHand.pinching = False
+							self.unpinched.emit(hand)
+							
+					delta = metaHand.updatePosition()
+					if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
+						self.moved.emit(delta)
+					
 	def toggleCalibration(self):
 		self.setCalibrating(not self.calibrating)
 		

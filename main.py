@@ -32,7 +32,6 @@ def schemeSelected(schemeName):
 		msgBox = QtGui.QMessageBox()
 		msgBox.setText("An error has occurred :(\n\n%s" % exc);
 		msgBox.exec();
-
 		
 		exc_type, exc_obj, exc_tb = sys.exc_info()
 		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

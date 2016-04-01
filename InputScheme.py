@@ -132,6 +132,16 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 		self.scale = 0
+		
+	def setWindow(self, window):
+		super().setWindow(window)
+		window.feedbackWindow.showEye()
+		window.feedbackWindow.showHand()
+		self.gestureTracker.handAppeared.connect(window.feedbackWindow.setHandGood)
+		self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
+		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
+		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
+		# @TODO: set eye feedback
 
 	def grabbed(self, hand):
 		gaze = self.getGaze()
@@ -264,6 +274,7 @@ class MouseOnlyScheme(InputScheme):
 '''
 '
 '''
+
 class LeapOnlyScheme(MouseOnlyScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
@@ -283,6 +294,14 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		
 		self.mouse = PyMouse()
 		
+	def setWindow(self, window):
+		super().setWindow(window)
+		window.feedbackWindow.showHand()
+		self.gestureTracker.handAppeared.connect(window.feedbackWindow.setHandGood)
+		self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
+		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
+		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
+
 	def grab(self, obj, mouseEvent):
 		pos = obj.mapToGlobal(mouseEvent.pos())
 		if self.doGrab(pos.x(), pos.y()):
@@ -337,6 +356,8 @@ class GazeAndKeyboard(InputScheme):
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.installEventFilter(self)
+		window.feedbackWindow.showEye()
+		# @TODO: set eye feedback
 
 	def eventFilter(self, widget, event):
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
@@ -387,6 +408,11 @@ class GazeOnly(InputScheme):
 		self.timer = QtCore.QTimer()
 		self.timer.timeout.connect(self.loop)
 		self.timer.start(1000 / 30)
+
+	def setWindow(self, window):
+		super().setWindow(window)
+		window.feedbackWindow.showEye()
+		# @TODO: set eye feedback
 
 	def loop(self):
 		gazeFrame = self.gazeTracker.next()
