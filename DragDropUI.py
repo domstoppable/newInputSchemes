@@ -183,7 +183,7 @@ class FoldersWindow(QtGui.QScrollArea):
 		container = QtGui.QWidget()
 		layout = FlowLayout(spacing=30)
 		
-		image = QtGui.QImage('assets/folder.svg').scaled(200, 200)
+		image = QtGui.QImage('assets/folder.png').scaled(200, 200)
 		folderNames = [
 			'Cats', 'Cows', 'Dogs', 'Pigs',
 			'Rabbits', 'Birds', 'Bugs', 'Vacation',
@@ -253,8 +253,8 @@ class InputFeedbackWindow(QtGui.QWidget):
 
 	def showEye(self):
 		self.eyeImages = {
-			True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-good.svg')),
-			False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-bad.svg'))
+			True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-good.png')),
+			False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-bad.png'))
 		}
 		self.eyeWidget = QtGui.QLabel()
 		self.eyeWidget.setAlignment(QtCore.Qt.AlignCenter)
@@ -265,12 +265,12 @@ class InputFeedbackWindow(QtGui.QWidget):
 	def showHand(self):
 		self.handImages = {
 			True: {
-				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-good.svg')),
-				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-good.svg')),
+				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-good.png')),
+				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-good.png')),
 			},
 			False: {
-				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-bad.svg')),
-				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-bad.svg')),
+				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-bad.png')),
+				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-bad.png')),
 			},
 		}
 		self.handWidget = QtGui.QLabel()
