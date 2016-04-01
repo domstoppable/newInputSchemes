@@ -4,7 +4,10 @@ import time, logging
 from PySide import QtGui, QtCore
 
 from DragDropUI import IconLayout, FolderIcon
+from pymouse import PyMouse
 import sound
+
+pyMouse = PyMouse()
 
 '''
 '
@@ -34,6 +37,7 @@ class InputScheme(QtCore.QObject):
 		return widget
 
 	def doGrab(self, x, y):
+		pyMouse.move(int(x), int(y))
 		widget = self.findWidgetAt(x, y)
 		if widget is not None and not isinstance(widget, FolderIcon):
 			logging.info('Image grabbed %s' % widget.text)
@@ -45,22 +49,24 @@ class InputScheme(QtCore.QObject):
 			return False
 
 	def doRelease(self, x, y):
+		pyMouse.move(int(x), int(y))
 		if len(self.grabbedIcons) == 0:
 			return False
 
 		widget = QtGui.QApplication.instance().widgetAt(x, y)
 		while widget != None:
 			if isinstance(widget, FolderIcon):
-				self.moveImages(widget)
-				return True
+				break
 			else:
 				widget = widget.parentWidget()
 				
-		self.releaseImages()
-		
-		logging.info('Drop failure')
-			
-		return False
+		if widget != None:
+			self.moveImages(widget)
+			return True
+		else:
+			self.releaseImages()
+			logging.info('Drop failure')
+			return False
 			
 	def grabImage(self, image):
 		# only allow one image to be grabbed for now...
@@ -271,9 +277,6 @@ class LeapOnlyScheme(MouseOnlyScheme):
 
 		super().__init__(window)
 
-		from LeapDevice import LeapDevice
-		from pymouse import PyMouse
-		
 		self.scale = 8.5
 		
 		self.gestureTracker = LeapDevice()
@@ -281,8 +284,6 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
 		logging.debug('Leap connected')
-		
-		self.mouse = PyMouse()
 		
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -301,17 +302,17 @@ class LeapOnlyScheme(MouseOnlyScheme):
 				self.move(obj, mouseEvent)
 						
 	def grabbed(self, hand):
-		location = self.mouse.position()
-		self.mouse.press(location[0], location[1])
+		location = pyMouse.position()
+		pyMouse.press(location[0], location[1])
 
 	def released(self, hand):
-		location = self.mouse.position()
-		self.mouse.release(location[0], location[1])
+		location = pyMouse.position()
+		pyMouse.release(location[0], location[1])
 		self.release(position=location)
 		
 	def moved(self, delta):
-		location = self.mouse.position()
-		self.mouse.move(
+		location = pyMouse.position()
+		pyMouse.move(
 			int(location[0] + delta[0] * self.scale),
 			int(location[1] - delta[1] * self.scale)
 		)
@@ -452,3 +453,10 @@ class SchemeSelector(QtGui.QWidget):
 	def startScheme(self, scheme):
 		self.hide()
 		self.selected.emit(scheme)
+
+	def resizeEvent(self, e):
+		desktopSize = QtGui.QDesktopWidget().screenGeometry()
+		self.move(
+			(desktopSize.width() - self.size().width()) / 2,
+			(desktopSize.height() - self.size().height()) / 2
+		)
