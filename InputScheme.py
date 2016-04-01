@@ -111,6 +111,7 @@ class InputScheme(QtCore.QObject):
 		for icon in self.grabbedIcons:
 			icon._unhighlight()
 
+		self.grabbedIcons = []
 		sound.play("release.wav")
 		
 	def isGrabbing(self):
