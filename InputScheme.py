@@ -169,63 +169,12 @@ class LookGrabLookDropScheme(InputScheme):
 	def quit(self):
 		self.gestureTracker.exit()
 
-'''
-'
-'''
-class LeapMovesMeScheme(LookGrabLookDropScheme):
-	def __init__(self, window=None):
-		from LeapDevice import LeapDevice
-
-		super().__init__(window)
-		
-		self.scale = 8.5
-		self.floatingIcon = None
-		self.gestureTracker.moved.connect(self.moved)
-
-	def grabbed(self, hand):
-		super().grabbed(hand)
-		
-		if len(self.grabbedIcons) == 1:
-			self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
-
-	def released(self, hand):
-		if self.floatingIcon == None:
-			return
-
-		self.floatingIcon.hide()
-
-		center = self.floatingIcon.geometry().center()
-		super().doRelease(center.x(), center.y())
-
-		self.floatingIcon.close()
-		self.floatingIcon = None
-
-	def moved(self, delta):
-		if self.floatingIcon:
-			self.floatingIcon.moveBy(
-				delta[0] * self.scale,
-				delta[1] * self.scale
-			)
-			
-	def setScaling(self, value):
-		self.scale = value
-
-	def setGrabThreshold(self, value):
-		self.gestureTracker.grabThreshold = value
-
-	def setReleaseThreshold(self, value):
-		self.gestureTracker.releaseThreshold = value
-		
-'''
-'
-'''
 class MouseOnlyScheme(InputScheme):
 	def __init__(self, window=None):
 		super().__init__(window)
 		
 		self.connectEvents()
 		self.floatingIcon = None
-		self.mouseStartPoint = None
 		
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -238,14 +187,13 @@ class MouseOnlyScheme(InputScheme):
 		else:
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
-			self.window.mouseMoved.connect(self.move)
+			self.window.mouseMoved.connect(self.moveIcon)
 		
 	def grab(self, obj, mouseEvent):
 		pos = obj.mapToGlobal(mouseEvent.pos())
 		if self.doGrab(pos.x(), pos.y()):
 			if len(self.grabbedIcons) == 1:
-				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window, mouseEvent.pos())
-				self.mouseStartPoint = mouseEvent.pos()
+				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
 				self.move(obj, mouseEvent)
 				
 	def release(self, obj=None, mouseEvent=None, position=None):
@@ -260,14 +208,10 @@ class MouseOnlyScheme(InputScheme):
 		self.doRelease(position[0], position[1])
 			
 		
-	def move(self, obj, mouseEvent):
+	def moveIcon(self):
 		if self.floatingIcon:
-			p = obj.mapToGlobal(mouseEvent.pos())
-				
-			self.floatingIcon.move(
-				p.x() - self.floatingIcon.width()/2,
-				p.y() - self.floatingIcon.height()/2
-			)
+			pos = pyMouse.position()
+			self.floatingIcon.move(pos[0] - self.floatingIcon.width()/2, pos[1]-self.floatingIcon.height()/2)
 '''
 '
 '''
@@ -294,13 +238,11 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
 
-	def grab(self, obj, mouseEvent):
-		pos = obj.mapToGlobal(mouseEvent.pos())
-		if self.doGrab(pos.x(), pos.y()):
+	def grab(self):
+		x, y = pyMouse.position()
+		if self.doGrab(x, y):
 			if len(self.grabbedIcons) == 1:
-				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window, mouseEvent.pos())
-				self.mouseStartPoint = mouseEvent.pos()
-				self.move(obj, mouseEvent)
+				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
 						
 	def grabbed(self, hand):
 		location = pyMouse.position()
@@ -317,8 +259,6 @@ class LeapOnlyScheme(MouseOnlyScheme):
 			int(location[0] + delta[0] * self.scale),
 			int(location[1] - delta[1] * self.scale)
 		)
-		if self.floatingIcon:
-			self.floatingIcon.moveBy(delta)
 			
 	def setScaling(self, value):
 		self.scale = value
@@ -332,6 +272,36 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def quit(self):
 		self.gestureTracker.exit()
 
+'''
+'
+'''
+class LeapMovesMeScheme(LeapOnlyScheme):
+	def __init__(self, window=None):
+		from GazeDevice import GazeDevice
+
+		super().__init__(window)
+		
+		try:
+			self.gazeTracker = GazeDevice()
+		except Exception as exc:
+			logging.critical('Eyetribe error: %s', exc)
+			raise(Exception('Could not connect to EyeTribe'))
+
+	def setWindow(self, window):
+		super().setWindow(window)
+		window.feedbackWindow.showEye()
+		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
+
+	def grabbed(self, hand):
+		gaze = self.gazeTracker.getGaze()
+		pyMouse.move(int(gaze[0]), int(gaze[1]))
+		super().grab()
+		
+	def moved(self, delta):
+		if self.floatingIcon:
+			super().moved(delta)
+		
 class GazeAndKeyboard(InputScheme):
 	def __init__(self, window=None):
 		from GazeDevice import GazeDevice
@@ -396,7 +366,7 @@ class GazeOnly(InputScheme):
 '
 '''
 class DraggingIcon(QtGui.QMdiSubWindow):
-	def __init__(self, fromIcon, parentWindow, offset=None):
+	def __init__(self, fromIcon, parentWindow):
 		super().__init__()
 		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
 		
@@ -406,23 +376,10 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 		
 		parentWindow.addSubWindow(self, QtCore.Qt.FramelessWindowHint)
 		
-		if offset == None:
-			offset = QtCore.QPoint(75, 75)
 		pos = fromIcon.mapToGlobal(fromIcon.imageWidget.rect().center())
 		
-		self.move(pos.x() , pos.y() )
+		self.move(pos.x() , pos.y())
 		self.show()
-
-	def moveBy(self, delta, delta2=None):
-		if delta2 is not None:
-			delta = [delta, delta2]
-			
-		pos = [
-			self.x() + delta[0],
-			self.y() - delta[1]
-		]
-		self.move(pos[0], pos[1])
-
 
 class SchemeSelector(QtGui.QWidget):
 	selected = QtCore.Signal(object)
