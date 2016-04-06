@@ -456,6 +456,8 @@ class LeapOptionsWindow(QtGui.QWidget):
 		self.leapDevice.toggleCalibration()
 		self.calibrateButton.setChecked(self.leapDevice.calibrating)
 		
+
+
 if __name__ == '__main__':
 	import sys
 	app = QtGui.QApplication(sys.argv)

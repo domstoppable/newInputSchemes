@@ -28,13 +28,20 @@ class GazeDevice(QtCore.QObject):
 
 		self.detector = DwellSelect(.33, 75)
 		self.gazePosition = [-1, -1]
+		self.eyePositions = [[-1, -1], [-1, -1]]
 		self.lastFixation = None
 		self.sawEyesLastTime = False
 		
 		self.timer = QtCore.QTimer()
 		self.timer.setSingleShot(False)
 		self.timer.timeout.connect(self.poll)
-		self.timer.start(1.0/30.0)
+		
+	def isRunning(self):
+		return self.timer.isActive()
+		
+	def startPolling(self):
+		if not self.isRunning():
+			self.timer.start(1.0/60.0)
 		
 	def poll(self):
 		try:
@@ -52,6 +59,10 @@ class GazeDevice(QtCore.QObject):
 					currentTime,
 					gazeFrame.avg
 				)
+				self.eyePositions = [
+					[gazeFrame.lefteye.pcenter.x, gazeFrame.lefteye.pcenter.y],
+					[gazeFrame.righteye.pcenter.x, gazeFrame.righteye.pcenter.y]
+				]
 				self.detector.addPoint(point)
 				if self.detector.selection != None:
 					self.lastFixation = self.detector.clearSelection()
@@ -68,5 +79,44 @@ class GazeDevice(QtCore.QObject):
 	def getGaze(self):
 		return self.gazePosition
 		
+	def getEyePositions(self):
+		return self.eyePositions
+		
 	def exit(self):
 		self.timer.stop()
+
+	def redoCalibration(points):
+		self.points = points
+		random.shuffle(self.points)
+		
+		return self.points[-1]
+		
+	def startCalibration(self, xPoints, yPoints, screenWidth, screenHeight):
+		import random
+		
+		self.points = []
+		margin = 32
+		for y in range(yPoints):
+			for x in range(xPoints):
+				self.points.append([
+					x * ((screenWidth-margin*2) / (xPoints-1)) + margin,
+					y * ((screenHeight-margin*2) / (yPoints-1)) + margin
+				])
+		random.shuffle(self.points)
+		self.tracker.calibration_start(xPoints * yPoints)
+		
+		return self.points[-1]
+	
+	def beginPointCapture(self):
+		point = self.points.pop()
+		print("Starting point", point)
+		self.tracker.calibration_point_start(point[0], point[1])
+
+	def endPointCapture(self):
+		print("Ending point")
+		self.tracker.calibration_point_end()
+		if len(self.points) > 0:
+			return self.points[-1]
+	
+	def getCalibration(self):
+		return self.tracker.latest_calibration_result()
