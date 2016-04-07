@@ -3,7 +3,7 @@ import logging
 
 from PySide import QtGui, QtCore
 
-xResolution, yResolution = 3,3
+xResolution, yResolution = 5, 4
 instructions = '''
 	Please sit comfortably.
 	A target will appear on the screen.
@@ -42,7 +42,7 @@ class CalibrationWindow(QtGui.QWidget):
 		
 		self.pulseAnimation = QtCore.QPropertyAnimation(self.target, 'scale');
 		self.pulseAnimation.setStartValue(1.0)
-		self.pulseAnimation.setKeyValueAt(0.5, 0.5)
+		self.pulseAnimation.setKeyValueAt(0.5, 1.0/3.0)
 		self.pulseAnimation.setEndValue(1.0)
 		self.pulseAnimation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
 		self.pulseAnimation.setLoopCount(-1)
@@ -236,7 +236,7 @@ class TargetWidget(QtGui.QWidget):
 			size-2,
 			size-2
 		)
-		colors = [QtGui.QColor(0, 0, 0), QtGui.QColor(128, 128, 128)]
+		colors = [QtGui.QColor(0, 0, 0), QtGui.QColor(255, 255, 255)]
 		for color in colors:
 			size = size / 3.5
 			painter.setBrush(color)
