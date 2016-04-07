@@ -20,12 +20,15 @@ class InputScheme(QtCore.QObject):
 		self.grabbedIcons = []
 		self.destination = None
 		self.window = window
-
-	def setWindow(self, window=None):
-		self.window = window
 		
+	def start(self):
+		pass
+
 	def quit(self):
 		pass
+		
+	def setWindow(self, window=None):
+		self.window = window
 		
 	def findWidgetAt(self, x, y):
 		widget = QtGui.QApplication.instance().widgetAt(x, y)
@@ -123,20 +126,22 @@ class InputScheme(QtCore.QObject):
 class LookGrabLookDropScheme(InputScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
-		from GazeDevice import GazeDevice
+		import GazeDevice
 
 		super().__init__(window)
 		
 		self.gestureTracker = LeapDevice()
 		try:
-			self.gazeTracker = GazeDevice()
+			self.gazeTracker = GazeDevice.getGazeDevice()
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
 			
+		self.scale = 0
+		
+	def start(self):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
-		self.scale = 0
 		
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -173,21 +178,20 @@ class MouseOnlyScheme(InputScheme):
 	def __init__(self, window=None):
 		super().__init__(window)
 		
-		self.connectEvents()
 		self.floatingIcon = None
 		
-	def setWindow(self, window):
-		super().setWindow(window)
-		if type(self) == MouseOnlyScheme:
-			window.feedbackWindow.close()
-		
-	def connectEvents(self):
+	def start(self):
 		if self.window == None:
 			QtCore.QTimer.singleShot(100, self.connectEvents)
 		else:
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
 			self.window.mouseMoved.connect(self.moveIcon)
+		
+	def setWindow(self, window):
+		super().setWindow(window)
+		if type(self) == MouseOnlyScheme:
+			window.feedbackWindow.close()
 		
 	def grab(self, obj, mouseEvent):
 		pos = obj.mapToGlobal(mouseEvent.pos())
@@ -225,6 +229,8 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.scale = 8.5
 		
 		self.gestureTracker = LeapDevice()
+
+	def start(self):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
@@ -277,12 +283,12 @@ class LeapOnlyScheme(MouseOnlyScheme):
 '''
 class LeapMovesMeScheme(LeapOnlyScheme):
 	def __init__(self, window=None):
-		from GazeDevice import GazeDevice
+		import GazeDevice
 
 		super().__init__(window)
 		
 		try:
-			self.gazeTracker = GazeDevice()
+			self.gazeTracker = GazeDevice.getGazeDevice()
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -302,25 +308,27 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 		if self.floatingIcon:
 			super().moved(delta)
 		
-class GazeAndKeyboard(InputScheme):
+class GazeAndKeyboardScheme(InputScheme):
 	def __init__(self, window=None):
-		from GazeDevice import GazeDevice
+		import GazeDevice
 
 		super().__init__(window)
 		
 		try:
-			self.gazeTracker = GazeDevice()
+			self.gazeTracker = GazeDevice.getGazeDevice()
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
 			
+	def start(self):
+		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
+
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.installEventFilter(self)
 		window.feedbackWindow.showEye()
-		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
-		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
-
+		
 	def eventFilter(self, widget, event):
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
 			gaze = self.gazeTracker.getGaze()
@@ -334,24 +342,26 @@ class GazeAndKeyboard(InputScheme):
 	def quit(self):
 		pass
 
-class GazeOnly(InputScheme):
+class GazeOnlyScheme(InputScheme):
 	def __init__(self, window=None):
-		from GazeDevice import GazeDevice
+		import GazeDevice
 
 		super().__init__(window)
 
 		try:
-			self.gazeTracker = GazeDevice()
-			self.gazeTracker.fixated.connect(self.onFixate)
+			self.gazeTracker = GazeDevice.getGazeDevice()
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
 
+	def start(self):
+		self.gazeTracker.fixated.connect(self.onFixate)
+		self.gazeTracker.eyesAppeared.connect(self.window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(self.window.feedbackWindow.setEyeBad)
+
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.feedbackWindow.showEye()
-		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
-		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 		
 	def onFixate(self, position):
 		if not self.isGrabbing():
@@ -396,8 +406,8 @@ class SchemeSelector(QtGui.QWidget):
 			{'scheme':'LeapMovesMeScheme', 'label': 'Look, grab, move'},
 			{'scheme':'MouseOnlyScheme', 'label': 'Mouse only'},
 			{'scheme':'LeapOnlyScheme', 'label': 'LEAP only'},
-			{'scheme':'GazeAndKeyboard', 'label': 'Gaze and button'},
-			{'scheme':'GazeOnly', 'label': 'Gaze only'},
+			{'scheme':'GazeAndKeyboardScheme', 'label': 'Gaze and button'},
+			{'scheme':'GazeOnlyScheme', 'label': 'Gaze only'},
 		]
 		
 		for component in components:

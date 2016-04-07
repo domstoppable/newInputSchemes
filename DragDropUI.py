@@ -24,6 +24,7 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		self.loaded = True
 		
 		self.feedbackWindow.show()
+		self.gazeCalibrationWindow = None
 		
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -61,6 +62,7 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		return False
 		
 	def closeEvent(self, e):
+		super().closeEvent(e)
 		if self.optionsWindow:
 			self.optionsWindow.close()
 		if self.feedbackWindow:

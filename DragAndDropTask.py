@@ -8,7 +8,16 @@ from PySide import QtGui, QtCore
 from DragDropUI import *
 from InputScheme import *
 
-def main(scheme, app=None):
+from GazeCalibrationWindow import CalibrationWindow
+
+window = None
+gazeCalibrationWindow = None
+scheme = None
+def main(selectedScheme, app=None):
+	global window, gazeCalibrationWindow, scheme
+	
+	scheme = selectedScheme
+	
 	forceStart = app is None
 	if forceStart:
 		app = QtGui.QApplication(sys.argv)
@@ -21,21 +30,31 @@ def main(scheme, app=None):
 		if window.getRemainingImageCount() < 1:
 			QtCore.QTimer.singleShot(1000, app.exit)
 		
-	scheme.setWindow(window)
 	scheme.imageMoved.connect(imageMoved)
-
-	window.showFullScreen()
-	window.tileSubWindows()
 
 	if type(scheme).__name__ in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
 		window.optionsWindow = LeapOptionsWindow(scheme)
 		window.optionsWindow.scalingChanged.connect(scheme.setScaling)
 		window.optionsWindow.grabThresholdChanged.connect(scheme.setGrabThreshold)
 		window.optionsWindow.releaseThresholdChanged.connect(scheme.setReleaseThreshold)
+		
+	if type(scheme).__name__ in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'GazeOnlyScheme', 'GazeAndKeyboardScheme']:
+		gazeCalibrationWindow = CalibrationWindow()
+		gazeCalibrationWindow.closed.connect(showMainWindow)
+		gazeCalibrationWindow.show()
+	else:
+		showMainWindow()
 
 	if forceStart:
 		app.exec_()
 	return window
+	
+def showMainWindow():
+	global window, scheme
+	scheme.setWindow(window)
+	window.showFullScreen()
+	window.tileSubWindows()
+	scheme.start()
 
 if __name__ == '__main__':
 	scheme = getattr(InputScheme, sys.argv[0])()

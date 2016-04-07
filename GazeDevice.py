@@ -15,7 +15,16 @@ STATES = {
 	'STATE_TRACKING_LOST': 0x10,
 }
 
-class GazeDevice(QtCore.QObject):
+_instance = None
+
+def getGazeDevice():
+	global _instance
+	if _instance is None:
+		_instance = _GazeDevice()
+		
+	return _instance
+
+class _GazeDevice(QtCore.QObject):
 	eyesAppeared = QtCore.Signal(object)
 	eyesDisappeared = QtCore.Signal()
 	fixated = QtCore.Signal(object) # @TODO: make this work
@@ -88,8 +97,6 @@ class GazeDevice(QtCore.QObject):
 
 	def redoCalibration(self, points):
 		self.points = points
-		random.shuffle(self.points)
-		
 		return self.points[-1]
 		
 	def startCalibration(self, xPoints, yPoints, screenWidth, screenHeight):
@@ -102,6 +109,7 @@ class GazeDevice(QtCore.QObject):
 					y * ((screenHeight-margin*2) / (yPoints-1)) + margin
 				])
 		random.shuffle(self.points)
+		self.tracker.calibration_clear()
 		self.tracker.calibration_start(xPoints * yPoints)
 		
 		return self.points[-1]

@@ -12,20 +12,21 @@ instructions = '''
 '''.replace('\n', '<br>')
 
 class CalibrationWindow(QtGui.QWidget):
+	closed = QtCore.Signal()
+
 	def __init__(self, device=None):
 		super().__init__()
 		if device is None:
-			pass
-			from GazeDevice import GazeDevice
-			self.gazeTracker = GazeDevice()
+			import GazeDevice
+			self.gazeTracker = GazeDevice.getGazeDevice()
 		else:
 			self.gazeTracker = device
 			
 		self.setStyleSheet("background-color: #888;");
 			
-		self.movementTime = 1000 / 2
-		self.pointCaptureDelay = 500 / 2
-		self.pointCaptureDuration = 2000 / 2
+		self.movementTime = 750
+		self.pointCaptureDelay = 500
+		self.pointCaptureDuration = 1000
 
 		self.started = False
 		self.eyes = EyeballWidget(self)
@@ -35,9 +36,15 @@ class CalibrationWindow(QtGui.QWidget):
 		self.target.hide()
 
 		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-		self.pulsate()
 		self.showFullScreen()
 		self.centerChildAt(self.eyes)
+		
+		self.pulseAnimation = QtCore.QPropertyAnimation(self.target, 'scale');
+		self.pulseAnimation.setStartValue(1.0)
+		self.pulseAnimation.setKeyValueAt(0.5, 0.5)
+		self.pulseAnimation.setEndValue(1.0)
+		self.pulseAnimation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
+		self.pulseAnimation.setLoopCount(-1)
 		
 		self.gazeTracker.eyesAppeared.connect(self.setEyesGood)
 		self.gazeTracker.eyesDisappeared.connect(self.setEyesBad)
@@ -98,23 +105,15 @@ class CalibrationWindow(QtGui.QWidget):
 	def startCalibration(self, points=None):
 		self.label.hide()
 
+		self.pulseAnimation.setDuration(self.pointCaptureDuration / 3)
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()
-		self.centerChildAt(self.target)
 		self.target.show()
 		if points is None:
-			self.goToPoint(self.gazeTracker.startCalibration(4, 4, desktopSize.width(), desktopSize.height()))
+			self.centerChildAt(self.target)
+			self.goToPoint(self.gazeTracker.startCalibration(3, 3, desktopSize.width(), desktopSize.height()))
 		else:
+			logging.debug("redo-ing calibration")
 			self.goToPoint(self.gazeTracker.redoCalibration(points))
-		
-	def pulsate(self):
-		animation = QtCore.QPropertyAnimation(self.target, 'scale');
-		animation.setDuration(1000)
-		animation.setStartValue(1.0)
-		animation.setKeyValueAt(0.5, 0.5)
-		animation.setEndValue(1.0)
-		animation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
-		animation.setLoopCount(-1)
-		self.pulseAnimation = animation
 		
 	def centerChildAt(self, child, pos=None):
 		if pos is None:
@@ -147,10 +146,11 @@ class CalibrationWindow(QtGui.QWidget):
 		QtCore.QTimer.singleShot(self.pointCaptureDelay, self.startPointCapture)
 
 	def startPointCapture(self):
-		self.gazeTracker.beginPointCapture()
-		self.pulseAnimation.start()
+		if self.isVisible():
+			self.gazeTracker.beginPointCapture()
+			self.pulseAnimation.start()
 
-		QtCore.QTimer.singleShot(self.pointCaptureDuration, self.endPointCapture)
+			QtCore.QTimer.singleShot(self.pointCaptureDuration, self.endPointCapture)
 		
 	def endPointCapture(self):
 		self.pulseAnimation.stop()
@@ -159,22 +159,38 @@ class CalibrationWindow(QtGui.QWidget):
 			self.goToPoint(nextPoint)
 		else:
 			calibration = self.gazeTracker.getCalibration()
-			badPoints = []
-			for point in calibration.points:
+			badPointIndexes = []
+			for index, point in enumerate(calibration.points):
 				if point.state < 2 or point.asd > 50:
-					badPoints.append([point.cp.x, point.cp.y])
+					badPointIndexes.append(index)
 					logging.debug("Bad Coordinates : %s" % point.cp)
 					logging.debug("\taccuracy  : %d" % point.ad)
 					logging.debug("\tmean error: %d" % point.mep)
 					logging.debug("\tstd dev   : %d" % point.asd)
 				
-			if len(badPoints) > 0:
-				logging.debug("%d bad points during gaze calibration" % len(badPoints))
-				self.pointCaptureDuration = self.pointCaptureDuration * 1.5
-				self.pulseAnimation.setDuration(self.pointCaptureDuration / 3)
+			if len(badPointIndexes) > 0:
+				logging.debug("%d bad points during gaze calibration" % len(badPointIndexes))
+				if len(badPointIndexes) < 3:
+					# make sure there's at least 3 points to be re-done
+					pointsToRedoIndexes = []
+					for idx in badPointIndexes:
+						pointsToRedoIndexes.append(idx - 1)
+						pointsToRedoIndexes.append(idx)
+						pointsToRedoIndexes.append(idx + 1)
+
+					def wrap(idx):
+						size = len(calibration.points)
+						return (idx + size) % size
+					pointsToRedoIndexes = map(wrap, pointsToRedoIndexes)
+					badPointIndexes = list(set(pointsToRedoIndexes)) # make it unique
+				badPoints = []
+				for index in badPointIndexes:
+					badPoints.append([calibration.points[index].cp.x, calibration.points[index].cp.y])
+					
+				self.pointCaptureDuration = self.pointCaptureDuration * 1.25
+				badPoints.reverse()
 				self.startCalibration(badPoints)
 			else:
-				self.pulseAnimation.start()
 				self.trackGaze()
 				
 				for point in calibration.points:
@@ -195,6 +211,16 @@ class CalibrationWindow(QtGui.QWidget):
 	
 	def targetScaled(self):
 		self.centerChildAt(self.target)
+		
+	def closeEvent(self, e):
+		super().closeEvent(e)
+		self.pulseAnimation.stop()
+		self.animation.stop()
+		try:
+			self.gazeTracker.endPointCapture()
+		except:
+			pass
+		self.closed.emit()
 		
 class TargetWidget(QtGui.QWidget):
 	def __init__(self, parent):
