@@ -3,6 +3,7 @@ import logging
 
 from PySide import QtGui, QtCore
 
+xResolution, yResolution = 3,3
 instructions = '''
 	Please sit comfortably.
 	A target will appear on the screen.
@@ -110,7 +111,7 @@ class CalibrationWindow(QtGui.QWidget):
 		self.target.show()
 		if points is None:
 			self.centerChildAt(self.target)
-			self.goToPoint(self.gazeTracker.startCalibration(3, 3, desktopSize.width(), desktopSize.height()))
+			self.goToPoint(self.gazeTracker.startCalibration(xResolution, yResolution, desktopSize.width(), desktopSize.height()))
 		else:
 			logging.debug("redo-ing calibration")
 			self.goToPoint(self.gazeTracker.redoCalibration(points))
@@ -159,34 +160,19 @@ class CalibrationWindow(QtGui.QWidget):
 			self.goToPoint(nextPoint)
 		else:
 			calibration = self.gazeTracker.getCalibration()
-			badPointIndexes = []
-			for index, point in enumerate(calibration.points):
-				if point.state < 2 or point.asd > 50:
-					badPointIndexes.append(index)
+			badPoints = []
+			for point in calibration.points:
+				if point.state < 2:
 					logging.debug("Bad Coordinates : %s" % point.cp)
+					logging.debug("\tstate     : %d" % point.state)
 					logging.debug("\taccuracy  : %d" % point.ad)
 					logging.debug("\tmean error: %d" % point.mep)
 					logging.debug("\tstd dev   : %d" % point.asd)
-				
-			if len(badPointIndexes) > 0:
-				logging.debug("%d bad points during gaze calibration" % len(badPointIndexes))
-				if len(badPointIndexes) < 3:
-					# make sure there's at least 3 points to be re-done
-					pointsToRedoIndexes = []
-					for idx in badPointIndexes:
-						pointsToRedoIndexes.append(idx - 1)
-						pointsToRedoIndexes.append(idx)
-						pointsToRedoIndexes.append(idx + 1)
-
-					def wrap(idx):
-						size = len(calibration.points)
-						return (idx + size) % size
-					pointsToRedoIndexes = map(wrap, pointsToRedoIndexes)
-					badPointIndexes = list(set(pointsToRedoIndexes)) # make it unique
-				badPoints = []
-				for index in badPointIndexes:
-					badPoints.append([calibration.points[index].cp.x, calibration.points[index].cp.y])
 					
+					badPoints.append([point.cp.x, point.cp.y])
+				
+			if len(badPoints) > 0:
+				logging.debug("%d bad points during gaze calibration" % len(badPoints))
 				self.pointCaptureDuration = self.pointCaptureDuration * 1.25
 				badPoints.reverse()
 				self.startCalibration(badPoints)
@@ -195,13 +181,16 @@ class CalibrationWindow(QtGui.QWidget):
 				
 				for point in calibration.points:
 					text = '''
-						accuracy  : %d
-						mean error: %d
-						std dev   : %d
+						acc:%d
+						err:%d
+						dev:%d
 					''' % (point.ad, point.mep, point.asd)
-					label = QtGui.QLabel('<font size="14">%s</font>' % text.replace('\n', '<br>'), self)
-					label.setAlignment(QtCore.Qt.AlignCenter)
+					label = QtGui.QLabel('<font size="12">%s</font>' % text.replace('\n', '<br>'), self)
 					label.setStyleSheet("background-color: transparent;");
+					font = self.font()
+					font.setStyleHint(QtGui.QFont.Monospace)
+					font.setFamily("Courier New")
+					label.setFont(font)
 					label.show()
 					self.centerChildAt(label, [point.cp.x, point.cp.y])
 					logging.debug("Calibration point : %s" % point.cp)
