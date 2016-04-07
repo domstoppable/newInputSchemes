@@ -40,7 +40,7 @@ STATE_TRACKING_PRESENCE = 0x4
 STATE_TRACKING_FAIL = 0x8
 STATE_TRACKING_LOST = 0x10
 
-import sys
+import sys, logging
 
 if sys.version_info[0] == 2:
     import Queue as q
@@ -81,7 +81,7 @@ class EyeTribe():
 
     etm_heartbeat = '{ "category": "heartbeat" }'
 
-    etm_buffer_size = 4096
+    etm_buffer_size = 16384
 
     class Coord():
 
@@ -421,38 +421,48 @@ class EyeTribe():
                     # Multiple replies handled assuming non-documented \n is sent from the tracker, but (TODO) not split frames,
                     for js in r.decode().split("\n"):
                         if js.strip() != "":
-                            f = json.loads(js)
+                            f = None
+                            try:
+                                f = json.loads(js)
+                            except:
+                                logging.error("Eyetribe provided bad JSON :(")
+                                logging.debug(js)
 
-                            # handle heartbeat and calibration OK results, and store other stuff to proper queues
-                            sc = f['statuscode']
-                            if f['category'] == "heartbeat":
-                                pass
-                            elif f['category'] == 'calibration' and sc == 800:
-                                pass
-                            elif self._ispushmode and 'values' in f and 'frame' in f['values']:
-                                if sc != 200:
-                                    raise Exception("Connection failed, protocol error (%d)", sc)
+                            if f is not None:
+                                # handle heartbeat and calibration OK results, and store other stuff to proper queues
+                                sc = f['statuscode']
+                                if f['category'] == "heartbeat":
+                                    pass
+                                elif f['category'] == 'calibration' and sc == 800:
+                                    pass
+                                elif self._ispushmode and 'values' in f and 'frame' in f['values']:
+                                    if sc != 200:
+                                        raise Exception("Connection failed, protocol error (%d)", sc)
 
-                                ef = EyeTribe.Frame(f['values']['frame'])
+                                    ef = EyeTribe.Frame(f['values']['frame'])
 
-                                if self._pmcallback != None:
-                                    dont_queue = self._pmcallback(ef)
+                                    if self._pmcallback != None:
+                                        dont_queue = self._pmcallback(ef)
+                                    else:
+                                        dont_queue = False
+
+                                    if not dont_queue:
+                                        self._frameq.put(ef)
                                 else:
-                                    dont_queue = False
-
-                                if not dont_queue:
-                                    self._frameq.put(ef)
-                            else:
-                                # use semaphore to verify someone is waiting for a reply and give it to them (or fail!)
-                                if self._reply_lock.acquire(False):
-                                    self._reply_lock.release()
-                                    raise Exception("Connection protocol error; got reply but no-one asked for it: %s" % js)
-                                else:
-                                    self._replyq.put(f)
+                                    # use semaphore to verify someone is waiting for a reply and give it to them (or fail!)
+                                    if self._reply_lock.acquire(False):
+                                        self._reply_lock.release()
+                                        raise Exception("Connection protocol error; got reply but no-one asked for it: %s" % js)
+                                    else:
+                                        self._replyq.put(f)
 
                 except (socket.timeout, OSError):
                     if self._sock:
                         raise Exception("The connection failed with a timeout or OSError; lost tracker connection?")
+                except:
+                    exc = sys.exc_info()[0]
+                    logging.error("Eyetribe encountered an unknown error :(")
+                    logging.error(exc)
 
             sys.stderr.write("_listener ending\n")
 

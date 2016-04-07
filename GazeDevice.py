@@ -1,7 +1,8 @@
-from PySide import QtGui, QtCore
-
 import sys, os, inspect
 import logging, time
+import random
+
+from PySide import QtGui, QtCore
 
 from peyetribe import EyeTribe
 from selectionDetector import DwellSelect, Point
@@ -85,17 +86,15 @@ class GazeDevice(QtCore.QObject):
 	def exit(self):
 		self.timer.stop()
 
-	def redoCalibration(points):
+	def redoCalibration(self, points):
 		self.points = points
 		random.shuffle(self.points)
 		
 		return self.points[-1]
 		
 	def startCalibration(self, xPoints, yPoints, screenWidth, screenHeight):
-		import random
-		
 		self.points = []
-		margin = 32
+		margin = 100
 		for y in range(yPoints):
 			for x in range(xPoints):
 				self.points.append([
@@ -109,12 +108,17 @@ class GazeDevice(QtCore.QObject):
 	
 	def beginPointCapture(self):
 		point = self.points.pop()
-		print("Starting point", point)
-		self.tracker.calibration_point_start(point[0], point[1])
+		try:
+			self.tracker.calibration_point_start(point[0], point[1])
+		except Exception as exc:
+			logging.error(exc)
 
 	def endPointCapture(self):
-		print("Ending point")
-		self.tracker.calibration_point_end()
+		try:
+			self.tracker.calibration_point_end()
+		except Exception as exc:
+			logging.error(exc)
+
 		if len(self.points) > 0:
 			return self.points[-1]
 	
