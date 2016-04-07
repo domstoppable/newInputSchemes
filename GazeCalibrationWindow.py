@@ -23,7 +23,7 @@ class CalibrationWindow(QtGui.QWidget):
 		else:
 			self.gazeTracker = device
 			
-		self.setStyleSheet("background-color: #888;");
+		self.setStyleSheet("background-color: #ddd;");
 			
 		self.movementTime = 750
 		self.pointCaptureDelay = 500
@@ -228,7 +228,7 @@ class TargetWidget(QtGui.QWidget):
 		super().paintEvent(event)
 		painter = QtGui.QPainter(self)
 		painter.setPen(QtGui.QColor(0, 0, 0))
-		painter.setBrush(QtGui.QColor(255, 255, 255))
+		painter.setBrush(QtGui.QColor(128, 128, 128))
 		size = self.width() * self.scale
 		painter.drawEllipse(
 			(self.width() - size)/2+1,
@@ -236,7 +236,7 @@ class TargetWidget(QtGui.QWidget):
 			size-2,
 			size-2
 		)
-		colors = [QtGui.QColor(0, 0, 0),QtGui.QColor(255, 255, 255)]
+		colors = [QtGui.QColor(0, 0, 0), QtGui.QColor(128, 128, 128)]
 		for color in colors:
 			size = size / 3.5
 			painter.setBrush(color)
