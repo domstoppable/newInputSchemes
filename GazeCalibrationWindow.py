@@ -66,8 +66,8 @@ class CalibrationWindow(QtGui.QWidget):
 		self.gazeTracker.eyesAppeared.connect(self.setEyesGood)
 		self.gazeTracker.eyesDisappeared.connect(self.setEyesBad)
 		
-		self.eyeTimer.start(1.0/60)
-		self.gazeTimer.start(1.0/60)
+		self.eyeTimer.start(1000/30)
+		self.gazeTimer.start(1000/30)
 		self.gazeTracker.startPolling()
 		
 	def setEyesBad(self):
@@ -77,15 +77,18 @@ class CalibrationWindow(QtGui.QWidget):
 		self.eyes.ok = True
 		
 	def trackGazeWithTarget(self):
+		logging.debug("move target")
 		gaze = self.gazeTracker.getGaze()
 		self.centerChildAt(self.target, gaze)
 		self.target.show()
 		
 	def moveEyes(self):
-		if self.eyes.ok:
-			gaze = self.gazeTracker.getEyePositions()
-			x1, x2 = gaze[0][0], gaze[1][0]
-			y1, y2 = gaze[0][1], gaze[1][1]
+		logging.debug("move eyes")
+		if self.eyes.ok or True:
+			eyePos = self.gazeTracker.getEyePositions()
+			logging.debug(eyePos)
+			x1, x2 = eyePos[0][0], eyePos[1][0]
+			y1, y2 = eyePos[0][1], eyePos[1][1]
 			if (x1 == 0 and y1 == 0) or (x2 == 0 and y2 == 0):
 				pass
 			else:
@@ -122,7 +125,12 @@ class CalibrationWindow(QtGui.QWidget):
 					self.gazeTracker.cancelCalibration()
 		
 	def startCalibration(self, points=None):
+		logging.debug("calibration started")
 		self.label.hide()
+		for l in self.pointLabels:
+			l.hide()
+		self.pointLabels = []
+		
 		self.gazeTimer.stop()
 
 		self.pulseAnimation.setDuration(self.pointCaptureDuration / 3)
@@ -157,6 +165,7 @@ class CalibrationWindow(QtGui.QWidget):
 		self.animation.start()
 		
 	def startPointCaptureSoon(self):
+		self.gazeTimer.stop()
 		QtCore.QTimer.singleShot(self.pointCaptureDelay, self.startPointCapture)
 
 	def startPointCapture(self):
@@ -191,19 +200,15 @@ class CalibrationWindow(QtGui.QWidget):
 					badPoints.reverse()
 					self.startCalibration(badPoints)
 				else:
-					self.gazeTimer.start(1.0/60)
+					self.gazeTimer.start(1000/60)
 					self.showCalibratedLabels(calibration)
 					
 	def showCalibratedLabels(self, calibration=None):
-		self.gazeTimer.start(1.0/60)
+		self.gazeTimer.start(1000/60)
 		if calibration is None:
 			calibration = self.gazeTracker.getCalibration()
 		
 		if not (calibration is None or calibration.points is None):
-			for l in self.pointLabels:
-				l.hide()
-				
-			self.pointLabels = []
 			for point in calibration.points:
 				text = '''
 					acc:%d

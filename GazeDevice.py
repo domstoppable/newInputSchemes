@@ -34,17 +34,17 @@ class _GazeDevice(QtCore.QObject):
 		
 		self.tracker = EyeTribe()
 		self.tracker.connect()
-		self.tracker.pullmode()
+#		self.tracker.pullmode()
 
 		self.detector = DwellSelect(.33, 75)
-		self.gazePosition = [-1, -1]
-		self.eyePositions = [[-1, -1], [-1, -1]]
+		self.gazePosition = [-99, -99]
+		self.eyePositions = [[-99, -99], [-99, -99]]
 		self.lastFixation = None
-		self.sawEyesLastTime = False
+		self.sawEyesLastTime = None
 		
 		self.timer = QtCore.QTimer()
 		self.timer.setSingleShot(False)
-		self.timer.timeout.connect(self.poll)
+		self.timer.timeout.connect(self._poll)
 		
 		self.pointStarted = False
 		
@@ -65,21 +65,29 @@ class _GazeDevice(QtCore.QObject):
 		
 	def startPolling(self):
 		if not self.isRunning():
-			self.timer.start(1.0/60.0)
+			self.timer.start(1000/30)
 		
-	def poll(self):
+	def _poll(self):
 		try:
 			gazeFrame = self.tracker.next()
-			if (gazeFrame.state & (STATES['STATE_TRACKING_GAZE'] | STATES['STATE_TRACKING_EYES'] | STATES['STATE_TRACKING_PRESENCE'])  != 0):
-				if gazeFrame.state & (STATES['STATE_TRACKING_GAZE'] | STATES['STATE_TRACKING_EYES']) != 0:
-					if gazeFrame.avg.x == 0 and gazeFrame.avg.y == 0:
-						if self.sawEyesLastTime:
-							self.eyesDisappeared.emit()
-						self.sawEyesLastTime = False
-						return
+			if (gazeFrame.state & STATES['STATE_TRACKING_GAZE']) != 0:
+				self.eyePositions = [
+					[gazeFrame.lefteye.pcenter.x, gazeFrame.lefteye.pcenter.y],
+					[gazeFrame.righteye.pcenter.x, gazeFrame.righteye.pcenter.y]
+				]
+
+				if gazeFrame.raw.x == 0 and gazeFrame.raw.y == 0:
+					logging.debug('stuck : %s' % gazeFrame)
+					logging.debug('stuck : %s' % gazeFrame.state)
+					#raise(Exception('frame stuck'))
+				else:
+					logging.debug('good  : %s' % gazeFrame)
+					logging.debug('good  : %s' % gazeFrame.state)
+				if True:
 					self.gazePosition = [gazeFrame.avg.x, gazeFrame.avg.y]
-					if not self.sawEyesLastTime:
+					if not self.sawEyesLastTime or self.sawEyesLastTime is None:
 						self.eyesAppeared.emit(self.gazePosition)
+					self.sawEyesLastTime = True
 						
 					currentTime = time.time()
 					point = Point(
@@ -89,23 +97,13 @@ class _GazeDevice(QtCore.QObject):
 						currentTime,
 						gazeFrame.avg
 					)
-					self.eyePositions = [
-						[gazeFrame.lefteye.pcenter.x, gazeFrame.lefteye.pcenter.y],
-						[gazeFrame.righteye.pcenter.x, gazeFrame.righteye.pcenter.y]
-					]
 					self.detector.addPoint(point)
 					if self.detector.selection != None:
 						self.lastFixation = self.detector.clearSelection()
 						self.fixated.emit(self.lastFixation)
-					
-					self.sawEyesLastTime = True
-				else:
-					if self.sawEyesLastTime:
-						self.eyesDisappeared.emit()
-					self.sawEyesLastTime = False
 			else:
-				raise(Exception('not tracking'))
-		except:
+				raise(Exception('not tracking: %d' % gazeFrame.state))
+		except Exception as exc:
 			if self.sawEyesLastTime:
 				self.eyesDisappeared.emit()
 			self.sawEyesLastTime = False
@@ -125,6 +123,7 @@ class _GazeDevice(QtCore.QObject):
 		
 	def cancelCalibration(self):
 		if self.tracker.is_calibrating():
+			logging.debug("sending abort")
 			self.tracker.calibration_abort()
 			
 	def isCalibrating(self):

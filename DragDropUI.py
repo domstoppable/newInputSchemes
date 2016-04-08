@@ -45,7 +45,7 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 			self.optionsWindow.show()
 		
 	def eventFilter(self, obj, event):
-		if not self.loaded:
+		if not self.loaded or isinstance(obj, QtGui.QPushButton):
 			return False
 
 		if event.type() == QtCore.QEvent.Type.MouseMove:
