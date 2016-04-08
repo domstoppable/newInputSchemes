@@ -54,7 +54,6 @@ class CalibrationWindow(QtGui.QWidget):
 		
 		self.animation = QtCore.QPropertyAnimation(self.target, 'pos');
 		self.animation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
-		self.animation.finished.connect(self.startPointCaptureSoon)
 
 		self.pulseAnimation = QtCore.QPropertyAnimation(self.target, 'scale');
 		self.pulseAnimation.setStartValue(1.0)
@@ -69,6 +68,8 @@ class CalibrationWindow(QtGui.QWidget):
 		self.eyeTimer.start(1000/30)
 		self.gazeTimer.start(1000/30)
 		self.gazeTracker.startPolling()
+		
+		self.points = None
 		
 	def setEyesBad(self):
 		self.eyes.ok = False
@@ -132,16 +133,27 @@ class CalibrationWindow(QtGui.QWidget):
 		self.pointLabels = []
 		
 		self.gazeTimer.stop()
-
 		self.pulseAnimation.setDuration(self.pointCaptureDuration / 3)
-		desktopSize = QtGui.QDesktopWidget().screenGeometry()
-		self.target.show()
-		if points is None:
+		self.points = points
+		try:
+			self.animation.finished.disconnect()
+		except:
+			pass
+		self.animation.setDuration(self.movementTime * 2)
+		self.animation.finished.connect(self._startCalibration)
+		self.goToPoint([self.width()/2, self.height()/2])
+		
+	def _startCalibration(self):
+		self.animation.finished.disconnect()
+		self.animation.finished.connect(self.startPointCaptureSoon)
+		self.animation.setDuration(self.movementTime)
+		if self.points is None:
+			desktopSize = QtGui.QDesktopWidget().screenGeometry()
 			self.centerChildAt(self.target)
 			self.goToPoint(self.gazeTracker.startCalibration(xResolution, yResolution, desktopSize.width(), desktopSize.height()))
 		else:
 			logging.debug("redo-ing calibration")
-			self.goToPoint(self.gazeTracker.redoCalibration(points))
+			self.goToPoint(self.gazeTracker.redoCalibration(self.points))
 		
 	def centerChildAt(self, child, pos=None):
 		if pos is None:
@@ -156,7 +168,6 @@ class CalibrationWindow(QtGui.QWidget):
 		self.centerChildAt(self.label)
 		
 	def goToPoint(self, point):
-		self.animation.setDuration(self.movementTime)
 		self.animation.setStartValue(self.target.pos())
 		self.animation.setEndValue(QtCore.QPoint(
 			point[0] - self.target.width()/2,
@@ -165,7 +176,6 @@ class CalibrationWindow(QtGui.QWidget):
 		self.animation.start()
 		
 	def startPointCaptureSoon(self):
-		self.gazeTimer.stop()
 		QtCore.QTimer.singleShot(self.pointCaptureDelay, self.startPointCapture)
 
 	def startPointCapture(self):
