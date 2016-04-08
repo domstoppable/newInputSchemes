@@ -364,10 +364,24 @@ class GazeOnlyScheme(InputScheme):
 		window.feedbackWindow.showEye()
 		
 	def onFixate(self, position):
-		if not self.isGrabbing():
-			self.doGrab(position.x, position.y)
+		
+		widget = QtGui.QApplication.instance().widgetAt(position.x, position.y)
+		while widget != None:
+			if isinstance(widget, IconLayout):
+				break
+			else:
+				widget = widget.parentWidget()
+		
+		if widget != None:
+			if isinstance(widget, FolderIcon):
+				self.doRelease(position.x, position.y)
+			else:
+				self.doGrab(position.x, position.y)
 		else:
-			self.doRelease(position.x, position.y)
+			if not self.isGrabbing():
+				self.doGrab(position.x, position.y)
+			else:
+				self.doRelease(position.x, position.y)
 		
 	def quit(self):
 		self.gazeTracker.exit()

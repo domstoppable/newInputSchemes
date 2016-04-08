@@ -71,28 +71,38 @@ class _GazeDevice(QtCore.QObject):
 		try:
 			gazeFrame = self.tracker.next()
 			if (gazeFrame.state & (STATES['STATE_TRACKING_GAZE'] | STATES['STATE_TRACKING_EYES'] | STATES['STATE_TRACKING_PRESENCE'])  != 0):
-				self.gazePosition = [gazeFrame.avg.x, gazeFrame.avg.y]
-				if not self.sawEyesLastTime:
-					self.eyesAppeared.emit(self.gazePosition)
+				if gazeFrame.state & (STATES['STATE_TRACKING_GAZE'] | STATES['STATE_TRACKING_EYES']) != 0:
+					if gazeFrame.avg.x == 0 and gazeFrame.avg.y == 0:
+						if self.sawEyesLastTime:
+							self.eyesDisappeared.emit()
+						self.sawEyesLastTime = False
+						return
+					self.gazePosition = [gazeFrame.avg.x, gazeFrame.avg.y]
+					if not self.sawEyesLastTime:
+						self.eyesAppeared.emit(self.gazePosition)
+						
+					currentTime = time.time()
+					point = Point(
+						gazeFrame.avg.x,
+						gazeFrame.avg.y,
+						0,
+						currentTime,
+						gazeFrame.avg
+					)
+					self.eyePositions = [
+						[gazeFrame.lefteye.pcenter.x, gazeFrame.lefteye.pcenter.y],
+						[gazeFrame.righteye.pcenter.x, gazeFrame.righteye.pcenter.y]
+					]
+					self.detector.addPoint(point)
+					if self.detector.selection != None:
+						self.lastFixation = self.detector.clearSelection()
+						self.fixated.emit(self.lastFixation)
 					
-				currentTime = time.time()
-				point = Point(
-					gazeFrame.avg.x,
-					gazeFrame.avg.y,
-					0,
-					currentTime,
-					gazeFrame.avg
-				)
-				self.eyePositions = [
-					[gazeFrame.lefteye.pcenter.x, gazeFrame.lefteye.pcenter.y],
-					[gazeFrame.righteye.pcenter.x, gazeFrame.righteye.pcenter.y]
-				]
-				self.detector.addPoint(point)
-				if self.detector.selection != None:
-					self.lastFixation = self.detector.clearSelection()
-					self.fixated.emit(self.lastFixation)
-
-				self.sawEyesLastTime = True
+					self.sawEyesLastTime = True
+				else:
+					if self.sawEyesLastTime:
+						self.eyesDisappeared.emit()
+					self.sawEyesLastTime = False
 			else:
 				raise(Exception('not tracking'))
 		except:
