@@ -166,6 +166,7 @@ class ImagesWindow(QtGui.QScrollArea):
 		images = [ f for f in os.listdir(imagePath) if os.path.isfile(os.path.join(imagePath,f)) ]
 		random.shuffle(images)
 		for imageName in images:
+			count = count + 1
 			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(200, 200)
 
 			w = IconLayout(image, imageName)

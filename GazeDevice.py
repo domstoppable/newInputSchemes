@@ -58,7 +58,7 @@ class EyeTribeServer(QtCore.QObject):
 		self.process = subprocess.Popen([exe], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 		self._running = True
 		while not self.process.poll():
-			line = self.process.stdout.readline().decode("utf-8")
+			line = self.process.stdout.readline().decode("utf-8").strip()
 			if line != '':
 				logging.debug("Eyetribe server: %s" % line)
 				self.outputGenerated.emit(line)
@@ -141,13 +141,6 @@ class _GazeDevice(QtCore.QObject):
 					[gazeFrame.righteye.pcenter.x, gazeFrame.righteye.pcenter.y]
 				]
 
-				if gazeFrame.raw.x == 0 and gazeFrame.raw.y == 0:
-					logging.debug('stuck : %s' % gazeFrame)
-					logging.debug('stuck : %s' % gazeFrame.state)
-					#raise(Exception('frame stuck'))
-				else:
-					logging.debug('good  : %s' % gazeFrame)
-					logging.debug('good  : %s' % gazeFrame.state)
 				if True:
 					self.gazePosition = [gazeFrame.avg.x, gazeFrame.avg.y]
 					if not self.sawEyesLastTime or self.sawEyesLastTime is None:

@@ -190,7 +190,6 @@ class MouseOnlyScheme(InputScheme):
 			QtCore.QTimer.singleShot(100, self.start)
 			return False
 		else:
-			print("Connected")
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
 			self.window.mouseMoved.connect(self.moveIcon)

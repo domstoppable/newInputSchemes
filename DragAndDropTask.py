@@ -30,7 +30,7 @@ def main(selectedScheme, app=None):
 		logging.info('Moved %s to %s', imageName, destination)
 		
 		if window.getRemainingImageCount() < 1:
-			QtCore.QTimer.singleShot(500, app.exit)
+			QtCore.QTimer.singleShot(500, window.close)
 		
 	scheme.imageMoved.connect(imageMoved)
 

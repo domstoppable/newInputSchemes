@@ -78,16 +78,13 @@ class CalibrationWindow(QtGui.QWidget):
 		self.eyes.ok = True
 		
 	def trackGazeWithTarget(self):
-		logging.debug("move target")
 		gaze = self.gazeTracker.getGaze()
 		self.centerChildAt(self.target, gaze)
 		self.target.show()
 		
 	def moveEyes(self):
-		logging.debug("move eyes")
 		if self.eyes.ok or True:
 			eyePos = self.gazeTracker.getEyePositions()
-			logging.debug(eyePos)
 			x1, x2 = eyePos[0][0], eyePos[1][0]
 			y1, y2 = eyePos[0][1], eyePos[1][1]
 			if (x1 == 0 and y1 == 0) or (x2 == 0 and y2 == 0):
