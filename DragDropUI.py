@@ -24,7 +24,6 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		self.loaded = True
 		
 		self.feedbackWindow.show()
-		self.gazeCalibrationWindow = None
 		
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
@@ -333,6 +332,10 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.setWindowTitle('Device Options')
 		
 		self.calibratingGrab = False
+		self.gazeTracker = None
+		self.gazeCalibrationWindow = None
+
+		self.gestureTracker = None
 		
 		font = self.font()
 		font.setStyleHint(QtGui.QFont.Monospace)
@@ -414,16 +417,17 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		scheme.gestureTracker.grabbed.connect(self.grabbed)
 		scheme.gestureTracker.released.connect(self.released)
 
-	def addGazeControls(self, gazeDevice):
+	def addGazeControls(self, gazeTracker):
+		self.gazeTracker = gazeTracker
 		dwellDurationBox = QtGui.QDoubleSpinBox()
-		dwellDurationBox.setValue(gazeDevice.getDwellDuration())
+		dwellDurationBox.setValue(gazeTracker.getDwellDuration())
 		dwellDurationBox.setRange(0, 5)
 		dwellDurationBox.setSingleStep(.1)
 		dwellDurationBox.setSuffix("s")
 		dwellDurationBox.valueChanged.connect(self.dwellDurationChanged.emit)
 		
 		dwellRangeBox = QtGui.QDoubleSpinBox()
-		dwellRangeBox.setValue(gazeDevice.getDwellRange())
+		dwellRangeBox.setValue(gazeTracker.getDwellRange())
 		dwellRangeBox.setRange(0, 500)
 		dwellRangeBox.setSingleStep(10)
 		dwellRangeBox.setSuffix("px")
@@ -431,7 +435,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		
 		calibrateButton = QtGui.QPushButton('Calibrate gaze')
 		calibrateButton.setCheckable(True)
-		calibrateButton.clicked.connect(self.toggleCalibration)
+		calibrateButton.clicked.connect(self.showGazeCalibration)
 		
 		self.addElements([
 			['<b>-- Gaze options --</b>', None],
@@ -439,6 +443,11 @@ class DeviceOptionsWindow(QtGui.QWidget):
 			['Dwell duration', dwellDurationBox],
 			['Dwell range', dwellRangeBox],
 		])
+		
+	def showGazeCalibration(self):
+		from GazeCalibrationWindow import CalibrationWindow
+		self.gazeCalibrationWindow = CalibrationWindow(self.gazeTracker)
+		self.gazeCalibrationWindow.show()
 		
 	def addElements(self, tableElements):
 		for elements in tableElements:

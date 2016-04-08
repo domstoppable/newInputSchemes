@@ -3,7 +3,7 @@ import logging
 
 from PySide import QtGui, QtCore
 
-xResolution, yResolution = 5, 4
+xResolution, yResolution = 3, 3
 instructions = '''
 	Please sit comfortably.
 	A target will appear on the screen.
@@ -36,9 +36,21 @@ class CalibrationWindow(QtGui.QWidget):
 		self.target = TargetWidget(parent=self)
 		self.target.hide()
 
+		self.eyeTimer = QtCore.QTimer()
+		self.eyeTimer.setSingleShot(False)
+		self.eyeTimer.timeout.connect(self.moveEyes)
+
+		self.gazeTimer = QtCore.QTimer()
+		self.gazeTimer.setSingleShot(False)
+		self.gazeTimer.timeout.connect(self.trackGazeWithTarget)
+
+		self.pointLabels = []
+		self.showCalibratedLabels()
+		
 		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 		self.showFullScreen()
 		self.centerChildAt(self.eyes)
+
 		
 		self.animation = QtCore.QPropertyAnimation(self.target, 'pos');
 		self.animation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
@@ -54,10 +66,8 @@ class CalibrationWindow(QtGui.QWidget):
 		self.gazeTracker.eyesAppeared.connect(self.setEyesGood)
 		self.gazeTracker.eyesDisappeared.connect(self.setEyesBad)
 		
-		self.eyeTimer = QtCore.QTimer()
-		self.eyeTimer.setSingleShot(False)
-		self.eyeTimer.timeout.connect(self.moveEyes)
 		self.eyeTimer.start(1.0/60)
+		self.gazeTimer.start(1.0/60)
 		self.gazeTracker.startPolling()
 		
 	def setEyesBad(self):
@@ -66,15 +76,10 @@ class CalibrationWindow(QtGui.QWidget):
 	def setEyesGood(self):
 		self.eyes.ok = True
 		
-	def trackGaze(self):
-		self.gazeTimer = QtCore.QTimer()
-		self.gazeTimer.setSingleShot(False)
-		self.gazeTimer.timeout.connect(self.trackGazeWithTarget)
-		self.gazeTimer.start(1.0/60)
-		
 	def trackGazeWithTarget(self):
 		gaze = self.gazeTracker.getGaze()
 		self.centerChildAt(self.target, gaze)
+		self.target.show()
 		
 	def moveEyes(self):
 		if self.eyes.ok:
@@ -118,6 +123,7 @@ class CalibrationWindow(QtGui.QWidget):
 		
 	def startCalibration(self, points=None):
 		self.label.hide()
+		self.gazeTimer.stop()
 
 		self.pulseAnimation.setDuration(self.pointCaptureDuration / 3)
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()
@@ -185,26 +191,39 @@ class CalibrationWindow(QtGui.QWidget):
 					badPoints.reverse()
 					self.startCalibration(badPoints)
 				else:
-					self.trackGaze()
+					self.gazeTimer.start(1.0/60)
+					self.showCalibratedLabels(calibration)
 					
-					for point in calibration.points:
-						text = '''
-							acc:%d
-							err:%d
-							dev:%d
-						''' % (point.ad, point.mep, point.asd)
-						label = QtGui.QLabel('<font size="12">%s</font>' % text.replace('\n', '<br>'), self)
-						label.setStyleSheet("background-color: transparent;");
-						font = self.font()
-						font.setStyleHint(QtGui.QFont.Monospace)
-						font.setFamily("Courier New")
-						label.setFont(font)
-						label.show()
-						self.centerChildAt(label, [point.cp.x, point.cp.y])
-						logging.debug("Calibration point : %s" % point.cp)
-						logging.debug("\taccuracy  : %d" % point.ad)
-						logging.debug("\tmean error: %d" % point.mep)
-						logging.debug("\tstd dev   : %d" % point.asd)
+	def showCalibratedLabels(self, calibration=None):
+		self.gazeTimer.start(1.0/60)
+		if calibration is None:
+			calibration = self.gazeTracker.getCalibration()
+		
+		if not (calibration is None or calibration.points is None):
+			for l in self.pointLabels:
+				l.hide()
+				
+			self.pointLabels = []
+			for point in calibration.points:
+				text = '''
+					acc:%d
+					err:%d
+					dev:%d
+				''' % (point.ad, point.mep, point.asd)
+				label = QtGui.QLabel('<font size="12">%s</font>' % text.replace('\n', '<br>'), self)
+				label.setStyleSheet("background-color: transparent;");
+				font = self.font()
+				font.setStyleHint(QtGui.QFont.Monospace)
+				font.setFamily("Courier New")
+				label.setFont(font)
+				label.show()
+				self.centerChildAt(label, [point.cp.x, point.cp.y])
+				
+				self.pointLabels.append(label)
+				logging.debug("Calibration point : %s" % point.cp)
+				logging.debug("\taccuracy  : %d" % point.ad)
+				logging.debug("\tmean error: %d" % point.mep)
+				logging.debug("\tstd dev   : %d" % point.asd)
 	
 	def targetScaled(self):
 		self.centerChildAt(self.target)
@@ -213,6 +232,8 @@ class CalibrationWindow(QtGui.QWidget):
 		super().closeEvent(e)
 		self.pulseAnimation.stop()
 		self.animation.stop()
+		self.gazeTimer.stop()
+		self.eyeTimer.stop()
 		try:
 			self.gazeTracker.endPointCapture()
 		except:
