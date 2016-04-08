@@ -46,6 +46,20 @@ class _GazeDevice(QtCore.QObject):
 		self.timer.setSingleShot(False)
 		self.timer.timeout.connect(self.poll)
 		
+		self.pointStarted = False
+		
+	def getDwellDuration(self):
+		return self.detector.minimumDelay
+		
+	def getDwellRange(self):
+		return self.detector.range
+		
+	def setDwellDuration(self, duration):
+		self.detector.setDuration(duration)
+		
+	def setDwellRange(self, rangeInPixels):
+		self.detector.setRange(rangeInPixels)
+		
 	def isRunning(self):
 		return self.timer.isActive()
 		
@@ -99,6 +113,13 @@ class _GazeDevice(QtCore.QObject):
 		self.points = points
 		return self.points[-1]
 		
+	def cancelCalibration(self):
+		if self.tracker.is_calibrating():
+			self.tracker.calibration_abort()
+			
+	def isCalibrating(self):
+		return self.tracker.is_calibrating()
+		
 	def startCalibration(self, xPoints, yPoints, screenWidth, screenHeight):
 		self.points = []
 		margin = 100
@@ -118,15 +139,15 @@ class _GazeDevice(QtCore.QObject):
 		point = self.points.pop()
 		try:
 			self.tracker.calibration_point_start(point[0], point[1])
+			self.pointStarted = True
 		except Exception as exc:
 			logging.error(exc)
 
 	def endPointCapture(self):
-		try:
+		if self.pointStarted:
 			self.tracker.calibration_point_end()
-		except Exception as exc:
-			logging.error(exc)
-
+		
+		self.pointStarted = False
 		if len(self.points) > 0:
 			return self.points[-1]
 	

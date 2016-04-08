@@ -318,19 +318,20 @@ class InputFeedbackWindow(QtGui.QWidget):
 		self.eyeGood = False
 		self._updateIcons()
 
-class LeapOptionsWindow(QtGui.QWidget):
+class DeviceOptionsWindow(QtGui.QWidget):
 	scalingChanged = QtCore.Signal(object)
 	grabThresholdChanged = QtCore.Signal(object)
 	pinchThresholdChanged = QtCore.Signal(object)
 	releaseThresholdChanged = QtCore.Signal(object)
 	unpinchThresholdChanged = QtCore.Signal(object)
+	dwellDurationChanged = QtCore.Signal(float)
+	dwellRangeChanged = QtCore.Signal(float)
 	
-	def __init__(self, scheme):
+	def __init__(self):
 		super().__init__()
 		
-		self.setWindowTitle('LEAP Options')
+		self.setWindowTitle('Device Options')
 		
-		self.leapDevice = scheme.gestureTracker
 		self.calibratingGrab = False
 		
 		font = self.font()
@@ -344,6 +345,9 @@ class LeapOptionsWindow(QtGui.QWidget):
 		layout.setSpacing(20)
 		self.setLayout(layout)
 		
+		self.tableElementCount = 0
+		
+	def addGestureControls(self, scheme):
 		scalingBox = QtGui.QDoubleSpinBox()
 		scalingBox.setValue(scheme.scale)
 		scalingBox.setRange(-20, 20)
@@ -352,68 +356,101 @@ class LeapOptionsWindow(QtGui.QWidget):
 		scalingBox.valueChanged.connect(self.emitScaleChange)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
-		grabThresholdBox.setValue(100 * self.leapDevice.grabThreshold)
+		grabThresholdBox.setValue(100 * scheme.gestureTracker.grabThreshold)
 		grabThresholdBox.setRange(0, 100)
 		grabThresholdBox.setSingleStep(1)
 		grabThresholdBox.setSuffix("%")
 		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
 		
 		pinchThresholdBox = QtGui.QDoubleSpinBox()
-		pinchThresholdBox.setValue(100 * self.leapDevice.pinchThreshold)
+		pinchThresholdBox.setValue(100 * scheme.gestureTracker.pinchThreshold)
 		pinchThresholdBox.setRange(0, 100)
 		pinchThresholdBox.setSingleStep(1)
 		pinchThresholdBox.setSuffix("%")
 		pinchThresholdBox.valueChanged.connect(self.emitPinchThresholdChange)
 		
 		unpinchThresholdBox = QtGui.QDoubleSpinBox()
-		unpinchThresholdBox.setValue(100 * self.leapDevice.unpinchThreshold)
+		unpinchThresholdBox.setValue(100 * scheme.gestureTracker.unpinchThreshold)
 		unpinchThresholdBox.setRange(0, 100)
 		unpinchThresholdBox.setSingleStep(1)
 		unpinchThresholdBox.setSuffix("%")
 		unpinchThresholdBox.valueChanged.connect(self.emitUnpinchThresholdChange)
 		
 		releaseThresholdBox = QtGui.QDoubleSpinBox()
-		releaseThresholdBox.setValue(100 * self.leapDevice.releaseThreshold)
+		releaseThresholdBox.setValue(100 * scheme.gestureTracker.releaseThreshold)
 		releaseThresholdBox.setRange(0, 100)
 		releaseThresholdBox.setSingleStep(1)
 		releaseThresholdBox.setSuffix("%")
 		releaseThresholdBox.valueChanged.connect(self.emitReleaseThresholdChange)
 		
+		font = self.font()
+		font.setPointSize(24)
 		self.currentGrabBox = QtGui.QLabel()
 		self.currentGrabBox.setAlignment(QtCore.Qt.AlignRight)
-		font.setPointSize(24)
 		self.currentGrabBox.setFont(font)
 
 		self.currentPinchBox = QtGui.QLabel()
 		self.currentPinchBox.setAlignment(QtCore.Qt.AlignLeft)
-		font.setPointSize(24)
 		self.currentPinchBox.setFont(font)
 		
-		self.calibrateButton = QtGui.QPushButton('Current grab value')
+		self.calibrateButton = QtGui.QPushButton('Current grab')
 		self.calibrateButton.setCheckable(True)
 		self.calibrateButton.clicked.connect(self.toggleCalibration)
 		
-		tableElements = [
+		self.addElements([
+			['<b>-- Gesture Options --</b>'],
+			[self.calibrateButton, self.currentGrabBox],
 			['Movement scaling', scalingBox],
 			['Grab threshold', grabThresholdBox],
 			['Release threshold', releaseThresholdBox],
-			[self.calibrateButton, self.currentGrabBox],
-			['Pinch threshold', pinchThresholdBox],
-			['Unpinch threshold', unpinchThresholdBox],
-			['Current pinch value', self.currentPinchBox],
-		]
-		for index, elements in enumerate(tableElements):
-			if not isinstance(elements[0], QtGui.QWidget):
-				elements[0] = QtGui.QLabel(elements[0])
-			layout.addWidget(elements[0], index, 0)
-			layout.addWidget(elements[1], index, 1)
-
-		self.leapDevice.grabValued.connect(self.setGrabValue)
-		self.leapDevice.pinchValued.connect(self.setPinchValue)
-		self.leapDevice.noHands.connect(self.setGrabValue)
-		self.leapDevice.grabbed.connect(self.grabbed)
-		self.leapDevice.released.connect(self.released)
+#			['Pinch threshold', pinchThresholdBox],
+#			['Unpinch threshold', unpinchThresholdBox],
+#			['Current pinch value', self.currentPinchBox],
+		])
 		
+		scheme.gestureTracker.grabValued.connect(self.setGrabValue)
+		scheme.gestureTracker.pinchValued.connect(self.setPinchValue)
+		scheme.gestureTracker.noHands.connect(self.setGrabValue)
+		scheme.gestureTracker.grabbed.connect(self.grabbed)
+		scheme.gestureTracker.released.connect(self.released)
+
+	def addGazeControls(self, gazeDevice):
+		dwellDurationBox = QtGui.QDoubleSpinBox()
+		dwellDurationBox.setValue(gazeDevice.getDwellDuration())
+		dwellDurationBox.setRange(0, 5)
+		dwellDurationBox.setSingleStep(.1)
+		dwellDurationBox.setSuffix("s")
+		dwellDurationBox.valueChanged.connect(self.dwellDurationChanged.emit)
+		
+		dwellRangeBox = QtGui.QDoubleSpinBox()
+		dwellRangeBox.setValue(gazeDevice.getDwellRange())
+		dwellRangeBox.setRange(0, 500)
+		dwellRangeBox.setSingleStep(10)
+		dwellRangeBox.setSuffix("px")
+		dwellRangeBox.valueChanged.connect(self.dwellRangeChanged.emit)
+		
+		calibrateButton = QtGui.QPushButton('Calibrate gaze')
+		calibrateButton.setCheckable(True)
+		calibrateButton.clicked.connect(self.toggleCalibration)
+		
+		self.addElements([
+			['<b>-- Gaze options --</b>', None],
+			[calibrateButton, ''],
+			['Dwell duration', dwellDurationBox],
+			['Dwell range', dwellRangeBox],
+		])
+		
+	def addElements(self, tableElements):
+		for elements in tableElements:
+			for column, element in enumerate(elements):
+				if element is None:
+					continue
+				if not isinstance(element, QtGui.QWidget):
+					element = QtGui.QLabel(element)
+				self.layout().addWidget(element, self.tableElementCount, column)
+			
+			self.tableElementCount = self.tableElementCount + 1
+
 	def startGrabCalibration(self):
 		self.calibratingGrab = True
 		

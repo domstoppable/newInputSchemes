@@ -32,21 +32,28 @@ def main(selectedScheme, app=None):
 		
 	scheme.imageMoved.connect(imageMoved)
 
-	if type(scheme).__name__ in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'LeapOnlyScheme']:
-		window.optionsWindow = LeapOptionsWindow(scheme)
+	window.optionsWindow = DeviceOptionsWindow()
+	if hasattr(scheme, 'gestureTracker'):
 		window.optionsWindow.scalingChanged.connect(scheme.setScaling)
 		window.optionsWindow.grabThresholdChanged.connect(scheme.setGrabThreshold)
 		window.optionsWindow.releaseThresholdChanged.connect(scheme.setReleaseThreshold)
 		
-	if type(scheme).__name__ in ['LookGrabLookDropScheme', 'LeapMovesMeScheme', 'GazeOnlyScheme', 'GazeAndKeyboardScheme']:
-		gazeCalibrationWindow = CalibrationWindow()
+		window.optionsWindow.addGestureControls(scheme)
+		
+	if hasattr(scheme, 'gazeTracker'):
+		gazeCalibrationWindow = CalibrationWindow(scheme.gazeTracker)
 		gazeCalibrationWindow.closed.connect(showMainWindow)
 		gazeCalibrationWindow.show()
+		
+		window.optionsWindow.dwellDurationChanged.connect(scheme.gazeTracker.setDwellDuration)
+		window.optionsWindow.dwellRangeChanged.connect(scheme.gazeTracker.setDwellRange)
+		window.optionsWindow.addGazeControls(scheme.gazeTracker)
 	else:
 		showMainWindow()
 
 	if forceStart:
 		app.exec_()
+		
 	return window
 	
 def showMainWindow():

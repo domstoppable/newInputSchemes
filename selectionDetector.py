@@ -64,6 +64,12 @@ class DwellSelect(SelectionDetector):
         self.lastDwellPoint = None
         self.inDwell = False
         
+    def setDuration(self, duration):
+        self.minimumDelay = duration
+        
+    def setRange(self, rangeInPixels):
+        self.range = rangeInPixels
+        
     def addPoint(self, point):
         super(DwellSelect, self).addPoint(point)
         if len(self.points) < 2:

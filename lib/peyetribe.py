@@ -66,6 +66,8 @@ class EyeTribe():
 
     etm_get_init = '{ "category": "tracker", "request" : "get", "values": [ "iscalibrated", "heartbeatinterval" ] }'
 
+    etm_get_iscalibrating = '{ "category": "tracker", "request" : "get", "values": [ "iscalibrating" ] }'
+
     etm_calib = '{ "category": "calibration", "request" : "start", "values": { "pointcount": %d } }'
     etm_calib_abort = '{ "category": "calibration", "request" : "abort" }'
     etm_calib_clear = '{ "category": "calibration", "request" : "clear" }'
@@ -606,7 +608,9 @@ class EyeTribe():
         """
 
         self._tell_tracker(EyeTribe.etm_calib % pointcount)
-
+        
+    def is_calibrating(self):
+        return self._tell_tracker(EyeTribe.etm_get_iscalibrating)['values']['iscalibrating']
 
     def calibration_point_start(self, x, y):
             self._tell_tracker(EyeTribe.etm_cpstart % (x, y))

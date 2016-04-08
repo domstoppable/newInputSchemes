@@ -40,6 +40,10 @@ class CalibrationWindow(QtGui.QWidget):
 		self.showFullScreen()
 		self.centerChildAt(self.eyes)
 		
+		self.animation = QtCore.QPropertyAnimation(self.target, 'pos');
+		self.animation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
+		self.animation.finished.connect(self.startPointCaptureSoon)
+
 		self.pulseAnimation = QtCore.QPropertyAnimation(self.target, 'scale');
 		self.pulseAnimation.setStartValue(1.0)
 		self.pulseAnimation.setKeyValueAt(0.5, 1.0/3.0)
@@ -98,10 +102,19 @@ class CalibrationWindow(QtGui.QWidget):
 		
 	def keyPressEvent(self, event):
 		super().keyPressEvent(event)
-		if not self.started:
-			self.started = True
-			self.startCalibration()
-			self.eyes.opacity = 0.15
+		if event.key() == QtCore.Qt.Key_Escape:
+			self.close()
+			if self.gazeTracker.isCalibrating():
+				self.gazeTracker.cancelCalibration()
+		elif event.key() == QtCore.Qt.Key_Space:
+			if not self.started:
+				self.started = True
+				self.startCalibration()
+				self.eyes.opacity = 0.15
+			else:
+				self.close()
+				if self.gazeTracker.isCalibrating():
+					self.gazeTracker.cancelCalibration()
 		
 	def startCalibration(self, points=None):
 		self.label.hide()
@@ -129,19 +142,13 @@ class CalibrationWindow(QtGui.QWidget):
 		self.centerChildAt(self.label)
 		
 	def goToPoint(self, point):
-		animation = QtCore.QPropertyAnimation(self.target, 'pos');
-		animation.setDuration(self.movementTime)
-		animation.setStartValue(self.target.pos())
-		animation.setEndValue(QtCore.QPoint(
+		self.animation.setDuration(self.movementTime)
+		self.animation.setStartValue(self.target.pos())
+		self.animation.setEndValue(QtCore.QPoint(
 			point[0] - self.target.width()/2,
 			point[1] - self.target.height()/2
 		))
-		animation.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
-		animation.finished.connect(self.startPointCaptureSoon)
-		animation.start()
-		
-		# maintain a handle on the animation to prevent GC
-		self.animation = animation
+		self.animation.start()
 		
 	def startPointCaptureSoon(self):
 		QtCore.QTimer.singleShot(self.pointCaptureDelay, self.startPointCapture)
@@ -155,48 +162,49 @@ class CalibrationWindow(QtGui.QWidget):
 		
 	def endPointCapture(self):
 		self.pulseAnimation.stop()
-		nextPoint = self.gazeTracker.endPointCapture()
-		if nextPoint != None:
-			self.goToPoint(nextPoint)
-		else:
-			calibration = self.gazeTracker.getCalibration()
-			badPoints = []
-			for point in calibration.points:
-				if point.state < 2:
-					logging.debug("Bad Coordinates : %s" % point.cp)
-					logging.debug("\tstate     : %d" % point.state)
-					logging.debug("\taccuracy  : %d" % point.ad)
-					logging.debug("\tmean error: %d" % point.mep)
-					logging.debug("\tstd dev   : %d" % point.asd)
-					
-					badPoints.append([point.cp.x, point.cp.y])
-				
-			if len(badPoints) > 0:
-				logging.debug("%d bad points during gaze calibration" % len(badPoints))
-				self.pointCaptureDuration = self.pointCaptureDuration * 1.25
-				badPoints.reverse()
-				self.startCalibration(badPoints)
+		if self.isVisible():			
+			nextPoint = self.gazeTracker.endPointCapture()
+			if nextPoint != None:
+				self.goToPoint(nextPoint)
 			else:
-				self.trackGaze()
-				
+				calibration = self.gazeTracker.getCalibration()
+				badPoints = []
 				for point in calibration.points:
-					text = '''
-						acc:%d
-						err:%d
-						dev:%d
-					''' % (point.ad, point.mep, point.asd)
-					label = QtGui.QLabel('<font size="12">%s</font>' % text.replace('\n', '<br>'), self)
-					label.setStyleSheet("background-color: transparent;");
-					font = self.font()
-					font.setStyleHint(QtGui.QFont.Monospace)
-					font.setFamily("Courier New")
-					label.setFont(font)
-					label.show()
-					self.centerChildAt(label, [point.cp.x, point.cp.y])
-					logging.debug("Calibration point : %s" % point.cp)
-					logging.debug("\taccuracy  : %d" % point.ad)
-					logging.debug("\tmean error: %d" % point.mep)
-					logging.debug("\tstd dev   : %d" % point.asd)
+					if point.state < 2:
+						logging.debug("Bad Coordinates : %s" % point.cp)
+						logging.debug("\tstate     : %d" % point.state)
+						logging.debug("\taccuracy  : %d" % point.ad)
+						logging.debug("\tmean error: %d" % point.mep)
+						logging.debug("\tstd dev   : %d" % point.asd)
+						
+						badPoints.append([point.cp.x, point.cp.y])
+					
+				if len(badPoints) > 0:
+					logging.debug("%d bad points during gaze calibration" % len(badPoints))
+					self.pointCaptureDuration = self.pointCaptureDuration * 1.25
+					badPoints.reverse()
+					self.startCalibration(badPoints)
+				else:
+					self.trackGaze()
+					
+					for point in calibration.points:
+						text = '''
+							acc:%d
+							err:%d
+							dev:%d
+						''' % (point.ad, point.mep, point.asd)
+						label = QtGui.QLabel('<font size="12">%s</font>' % text.replace('\n', '<br>'), self)
+						label.setStyleSheet("background-color: transparent;");
+						font = self.font()
+						font.setStyleHint(QtGui.QFont.Monospace)
+						font.setFamily("Courier New")
+						label.setFont(font)
+						label.show()
+						self.centerChildAt(label, [point.cp.x, point.cp.y])
+						logging.debug("Calibration point : %s" % point.cp)
+						logging.debug("\taccuracy  : %d" % point.ad)
+						logging.debug("\tmean error: %d" % point.mep)
+						logging.debug("\tstd dev   : %d" % point.asd)
 	
 	def targetScaled(self):
 		self.centerChildAt(self.target)
