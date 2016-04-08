@@ -1,6 +1,6 @@
-import sys, os, inspect
-import logging, time
-import random
+import logging
+import time, random
+import threading, subprocess, signal
 
 from PySide import QtGui, QtCore
 
@@ -16,25 +16,70 @@ STATES = {
 }
 
 _instance = None
-
 def getGazeDevice():
 	global _instance
 	if _instance is None:
 		_instance = _GazeDevice()
 		
 	return _instance
+	
+class EyeTribeServer(QtCore.QObject):
+	outputGenerated = QtCore.Signal(object)
+	ready = QtCore.Signal()
+	error = QtCore.Signal(object)
+	
+	def __init__(self):
+		super().__init__()
+		self.thread = threading.Thread(target=self._go)
+		self._ready = False
+		self._running = False
+		
+	def __del__(self):
+		self.stop()
+		
+	def start(self):
+		if not self._running:
+			self.thread.start()
+	
+	def stop(self):
+		self.process.kill()
+		
+	def isReady(self):
+		return self._ready
+		
+	def isRunning(self):
+		return self._running
+		
+	def _go(self):
+		goodText = 'The Eye Tribe Tracker stands ready!'
+		runningText = 'The Eye Tribe Tracker is already running!'
+		
+		exe = 'C:\\Program Files (x86)\\EyeTribe\\Server\\EyeTribe.exe'
+		self.process = subprocess.Popen([exe], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+		self._running = True
+		while not self.process.poll():
+			line = self.process.stdout.readline().decode("utf-8")
+			if line != '':
+				logging.debug("Eyetribe server: %s" % line)
+				self.outputGenerated.emit(line)
+				if goodText in line:
+					self._ready = True
+					self.ready.emit()
+					
+		for line in self.process.stderr.readlines():
+			self.error.emit(line)
+			if not self._ready and  l in runningText:
+				self._ready = True
+				self.ready.emit()
 
 class _GazeDevice(QtCore.QObject):
+	ready = QtCore.Signal()
 	eyesAppeared = QtCore.Signal(object)
 	eyesDisappeared = QtCore.Signal()
 	fixated = QtCore.Signal(object) # @TODO: make this work
 	
 	def __init__(self):
 		super().__init__()
-		
-		self.tracker = EyeTribe()
-		self.tracker.connect()
-#		self.tracker.pullmode()
 
 		self.detector = DwellSelect(.33, 75)
 		self.gazePosition = [-99, -99]
@@ -47,6 +92,19 @@ class _GazeDevice(QtCore.QObject):
 		self.timer.timeout.connect(self._poll)
 		
 		self.pointStarted = False
+		
+		self.tracker = EyeTribe()
+		self.server = EyeTribeServer()
+		self.server.ready.connect(self.connectToServer)
+#		self.tracker.pullmode()
+		self.server.start()
+		self.isReady = self.server.isReady
+
+
+	def connectToServer(self):
+		logging.debug("Eyetribe server ready - connecting tracker!")
+		self.tracker.connect()
+		self.ready.emit()
 		
 	def getDwellDuration(self):
 		return self.detector.minimumDelay
@@ -64,6 +122,13 @@ class _GazeDevice(QtCore.QObject):
 		return self.timer.isActive()
 		
 	def startPolling(self):
+		if self.server.isReady():
+			self._startPolling()
+		else:
+			self.server.ready.connect(self._startPolling)
+			self.server.start()
+
+	def _startPolling(self):
 		if not self.isRunning():
 			self.timer.start(1000/30)
 		
@@ -162,3 +227,9 @@ class _GazeDevice(QtCore.QObject):
 	
 	def getCalibration(self):
 		return self.tracker.latest_calibration_result()
+		
+	def stop(self):
+		self.timer.stop()
+		self.tracker.close()
+		time.sleep(8)
+		self.server.stop()

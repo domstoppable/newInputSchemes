@@ -24,13 +24,22 @@ app = QtGui.QApplication(sys.argv)
 appWindow = None
 scheme = None
 
+def schemeLoaded():
+	global app, appWindow, scheme
+	appWindow.hide()
+	appWindow = DragAndDropTask.main(scheme, app=app)
+
 def schemeSelected(schemeName):
 	global app, appWindow, scheme
 	# need to keep a handle on the window, or else it will be garbage collected
 	try:
 		scheme = getattr(InputScheme, schemeName)()
+		if scheme.isReady():
+			schemeLoaded()
+		else:
+			scheme.ready.connect(schemeLoaded)
+		
 		logging.debug('Loaded scheme %s', schemeName)
-		appWindow = DragAndDropTask.main(scheme, app=app)
 	except Exception as exc:
 		msgBox = QtGui.QMessageBox()
 		msgBox.setText("An error has occurred :(\n\n%s" % exc);
@@ -43,11 +52,11 @@ def schemeSelected(schemeName):
 		sys.exit(1)
 
 def main(args):
-	global app
+	global app, appWindow
 	logging.info('Main app started')
-	window = InputScheme.SchemeSelector()
-	window.show()
-	window.selected.connect(schemeSelected)
+	appWindow = InputScheme.SchemeSelector()
+	appWindow.show()
+	appWindow.selected.connect(schemeSelected)
 	app.exec_()
 	
 if __name__ == '__main__':

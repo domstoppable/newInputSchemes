@@ -9,17 +9,20 @@ import sound
 
 pyMouse = PyMouse()
 
-'''
-'
-'''
 class InputScheme(QtCore.QObject):
 	imageMoved = QtCore.Signal(str, str)
+	ready = QtCore.Signal()
+	
 	def __init__(self, window=None):
 
 		super().__init__()
 		self.grabbedIcons = []
 		self.destination = None
 		self.window = window
+		self._ready = False
+		
+	def isReady(self):
+		return self._ready
 		
 	def start(self):
 		pass
@@ -120,9 +123,6 @@ class InputScheme(QtCore.QObject):
 	def isGrabbing(self):
 		return len(self.grabbedIcons) > 0
 
-'''
-'
-'''
 class LookGrabLookDropScheme(InputScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
@@ -133,11 +133,15 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gestureTracker = LeapDevice()
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
+			self.gazeTracker.ready.connect(self.ready.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
 			
 		self.scale = 0
+		
+	def isReady(self):
+		return self.gazeTracker.isReady()
 		
 	def start(self):
 		self.gestureTracker.grabbed.connect(self.grabbed)
@@ -179,14 +183,18 @@ class MouseOnlyScheme(InputScheme):
 		super().__init__(window)
 		
 		self.floatingIcon = None
+		self._ready = True
 		
 	def start(self):
 		if self.window == None:
-			QtCore.QTimer.singleShot(100, self.connectEvents)
+			QtCore.QTimer.singleShot(100, self.start)
+			return False
 		else:
+			print("Connected")
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
 			self.window.mouseMoved.connect(self.moveIcon)
+			return True
 		
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -198,7 +206,6 @@ class MouseOnlyScheme(InputScheme):
 		if self.doGrab(pos.x(), pos.y()):
 			if len(self.grabbedIcons) == 1:
 				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
-				self.move(obj, mouseEvent)
 				
 	def release(self, obj=None, mouseEvent=None, position=None):
 		if position is None:
@@ -211,30 +218,25 @@ class MouseOnlyScheme(InputScheme):
 
 		self.doRelease(position[0], position[1])
 			
-		
 	def moveIcon(self):
 		if self.floatingIcon:
 			pos = pyMouse.position()
 			self.floatingIcon.move(pos[0] - self.floatingIcon.width()/2, pos[1]-self.floatingIcon.height()/2)
-'''
-'
-'''
-
+			
 class LeapOnlyScheme(MouseOnlyScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
 
+		self.scale = 8.5
+		self.gestureTracker = LeapDevice()
 		super().__init__(window)
 
-		self.scale = 8.5
-		
-		self.gestureTracker = LeapDevice()
-
 	def start(self):
-		self.gestureTracker.grabbed.connect(self.grabbed)
-		self.gestureTracker.released.connect(self.released)
-		self.gestureTracker.moved.connect(self.moved)
-		logging.debug('Leap connected')
+		if super().start():
+			self.gestureTracker.grabbed.connect(self.grabbed)
+			self.gestureTracker.released.connect(self.released)
+			self.gestureTracker.moved.connect(self.moved)
+			logging.debug('Leap connected')
 		
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -244,12 +246,6 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
 
-	def grab(self):
-		x, y = pyMouse.position()
-		if self.doGrab(x, y):
-			if len(self.grabbedIcons) == 1:
-				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
-						
 	def grabbed(self, hand):
 		location = pyMouse.position()
 		pyMouse.press(location[0], location[1])
@@ -278,21 +274,23 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def quit(self):
 		self.gestureTracker.exit()
 
-'''
-'
-'''
 class LeapMovesMeScheme(LeapOnlyScheme):
 	def __init__(self, window=None):
 		import GazeDevice
 
 		super().__init__(window)
+		self._ready = False
 		
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
+			self.gazeTracker.ready.connect(self.ready.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
-
+			
+	def isReady(self):
+		return self.gazeTracker.isReady()
+		
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.feedbackWindow.showEye()
@@ -301,8 +299,7 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 
 	def grabbed(self, hand):
 		gaze = self.gazeTracker.getGaze()
-		pyMouse.move(int(gaze[0]), int(gaze[1]))
-		super().grab()
+		pyMouse.press(int(gaze[0]), int(gaze[1]))
 		
 	def moved(self, delta):
 		if self.floatingIcon:
@@ -316,10 +313,14 @@ class GazeAndKeyboardScheme(InputScheme):
 		
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
+			self.gazeTracker.ready.connect(self.ready.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
 			
+	def isReady(self):
+		return self.gazeTracker.isReady()
+
 	def start(self):
 		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
 		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
@@ -350,6 +351,7 @@ class GazeOnlyScheme(InputScheme):
 
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
+			self.gazeTracker.ready.connect(self.ready.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -386,9 +388,6 @@ class GazeOnlyScheme(InputScheme):
 	def quit(self):
 		self.gazeTracker.exit()
 
-'''
-'
-'''
 class DraggingIcon(QtGui.QMdiSubWindow):
 	def __init__(self, fromIcon, parentWindow):
 		super().__init__()
@@ -416,10 +415,10 @@ class SchemeSelector(QtGui.QWidget):
 		self.setLayout(layout)
 		
 		components = [
-			{'scheme':'LookGrabLookDropScheme', 'label': 'Look, grab, look'},
-			{'scheme':'LeapMovesMeScheme', 'label': 'Look, grab, move'},
+			{'scheme':'LookGrabLookDropScheme', 'label': 'Gaze + gesture'},
+			{'scheme':'LeapMovesMeScheme', 'label': 'Gaze + gesture with motion'},
 			{'scheme':'MouseOnlyScheme', 'label': 'Mouse only'},
-			{'scheme':'LeapOnlyScheme', 'label': 'LEAP only'},
+			{'scheme':'LeapOnlyScheme', 'label': 'Gesture only'},
 			{'scheme':'GazeAndKeyboardScheme', 'label': 'Gaze and button'},
 			{'scheme':'GazeOnlyScheme', 'label': 'Gaze only'},
 		]
@@ -431,10 +430,24 @@ class SchemeSelector(QtGui.QWidget):
 			b.setFont(font)
 			b.clicked.connect(partial(self.startScheme, component['scheme']))
 			layout.addWidget(b)
+			
+		self.label = QtGui.QLabel()
 		
 	def startScheme(self, scheme):
-		self.hide()
+		while self.layout().count() > 0:
+			item = self.layout().takeAt(0)
+			widget = item.widget()
+			#widget.hide()
+			self.layout().removeWidget(widget)
+			widget.setParent(None)
+			del widget
+			del item
+			
+		self.label.setText('<font size="24"><b><center>Loading.<br>Please wait...</center></b></font>')
+		self.layout().addWidget(self.label)
 		self.selected.emit(scheme)
+		self.update()
+		self.repaint()
 
 	def resizeEvent(self, e):
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()

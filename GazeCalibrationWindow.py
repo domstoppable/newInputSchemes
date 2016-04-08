@@ -31,8 +31,8 @@ class CalibrationWindow(QtGui.QWidget):
 
 		self.started = False
 		self.eyes = EyeballWidget(self)
-		self.label = QtGui.QLabel('<font size="50">%s</font>' % instructions, self)
-		self.label.setStyleSheet("background-color: transparent;");
+#		self.label = QtGui.QLabel('<font size="50">%s</font>' % instructions, self)
+#		self.label.setStyleSheet("background-color: transparent;");
 		self.target = TargetWidget(parent=self)
 		self.target.hide()
 
@@ -127,7 +127,7 @@ class CalibrationWindow(QtGui.QWidget):
 		
 	def startCalibration(self, points=None):
 		logging.debug("calibration started")
-		self.label.hide()
+#		self.label.hide()
 		for l in self.pointLabels:
 			l.hide()
 		self.pointLabels = []
@@ -165,7 +165,7 @@ class CalibrationWindow(QtGui.QWidget):
 
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
-		self.centerChildAt(self.label)
+#		self.centerChildAt(self.label)
 		
 	def goToPoint(self, point):
 		self.animation.setStartValue(self.target.pos())

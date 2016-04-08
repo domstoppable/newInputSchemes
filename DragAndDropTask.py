@@ -11,6 +11,7 @@ from InputScheme import *
 from GazeCalibrationWindow import CalibrationWindow
 
 window = None
+loadingWindow = None
 gazeCalibrationWindow = None
 scheme = None
 def main(selectedScheme, app=None):
@@ -23,12 +24,13 @@ def main(selectedScheme, app=None):
 		app = QtGui.QApplication(sys.argv)
 
 	window = DragDropTaskWindow()
+	window.closed.connect(closeDown)
 	
 	def imageMoved(imageName, destination):
 		logging.info('Moved %s to %s', imageName, destination)
 		
 		if window.getRemainingImageCount() < 1:
-			QtCore.QTimer.singleShot(1000, app.exit)
+			QtCore.QTimer.singleShot(500, app.exit)
 		
 	scheme.imageMoved.connect(imageMoved)
 
@@ -55,6 +57,11 @@ def main(selectedScheme, app=None):
 		app.exec_()
 		
 	return window
+
+
+def closeDown():
+	if hasattr(scheme, 'gazeTracker'):
+		scheme.gazeTracker.stop()
 	
 def showMainWindow():
 	global window, scheme

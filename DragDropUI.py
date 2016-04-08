@@ -4,6 +4,7 @@ from PySide import QtGui, QtCore
 from FlowLayout import *
 
 class DragDropTaskWindow(QtGui.QMdiArea):
+	closed = QtCore.Signal()
 	mousePressed = QtCore.Signal(object, object)
 	mouseReleased = QtCore.Signal(object, object)
 	mouseMoved = QtCore.Signal(object, object)
@@ -62,10 +63,13 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		
 	def closeEvent(self, e):
 		super().closeEvent(e)
+		self.hide()
 		if self.optionsWindow:
 			self.optionsWindow.close()
 		if self.feedbackWindow:
 			self.feedbackWindow.close()
+			
+		self.closed.emit()
 
 class IconLayout(QtGui.QWidget):
 	highlight = QtCore.Signal()
