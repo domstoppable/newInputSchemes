@@ -263,7 +263,7 @@ class TargetWidget(QtGui.QWidget):
 		painter = QtGui.QPainter(self)
 		painter.setPen(QtGui.QColor(0, 0, 0))
 		painter.setBrush(QtGui.QColor(128, 128, 128))
-		painter.setRenderHint(painter.RenderHint.SmoothPixmapTransform)
+		painter.setRenderHint(painter.RenderHint.Antialiasing)
 		size = self.width() * self.scale
 		painter.drawEllipse(
 			(self.width() - size)/2+1,
