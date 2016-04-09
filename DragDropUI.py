@@ -368,20 +368,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		grabThresholdBox.setSingleStep(1)
 		grabThresholdBox.setSuffix("%")
 		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
-		
-		pinchThresholdBox = QtGui.QDoubleSpinBox()
-		pinchThresholdBox.setValue(100 * scheme.gestureTracker.pinchThreshold)
-		pinchThresholdBox.setRange(0, 100)
-		pinchThresholdBox.setSingleStep(1)
-		pinchThresholdBox.setSuffix("%")
-		pinchThresholdBox.valueChanged.connect(self.emitPinchThresholdChange)
-		
-		unpinchThresholdBox = QtGui.QDoubleSpinBox()
-		unpinchThresholdBox.setValue(100 * scheme.gestureTracker.unpinchThreshold)
-		unpinchThresholdBox.setRange(0, 100)
-		unpinchThresholdBox.setSingleStep(1)
-		unpinchThresholdBox.setSuffix("%")
-		unpinchThresholdBox.valueChanged.connect(self.emitUnpinchThresholdChange)
+		self.grabThresholdChanged.connect(scheme.gestureDevice.setGrabThreshold)
 		
 		releaseThresholdBox = QtGui.QDoubleSpinBox()
 		releaseThresholdBox.setValue(100 * scheme.gestureTracker.releaseThreshold)
@@ -389,6 +376,24 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		releaseThresholdBox.setSingleStep(1)
 		releaseThresholdBox.setSuffix("%")
 		releaseThresholdBox.valueChanged.connect(self.emitReleaseThresholdChange)
+		self.releaseThresholdChanged.connect(scheme.gestureDevice.setReleaseThreshold)
+
+		pinchThresholdBox = QtGui.QDoubleSpinBox()
+		pinchThresholdBox.setValue(100 * scheme.gestureTracker.pinchThreshold)
+		pinchThresholdBox.setRange(0, 100)
+		pinchThresholdBox.setSingleStep(1)
+		pinchThresholdBox.setSuffix("%")
+		pinchThresholdBox.valueChanged.connect(self.emitPinchThresholdChange)
+		self.pinchThresholdChanged.connect(scheme.gestureDevice.setPinchThreshold)
+		
+		unpinchThresholdBox = QtGui.QDoubleSpinBox()
+		unpinchThresholdBox.setValue(100 * scheme.gestureTracker.unpinchThreshold)
+		unpinchThresholdBox.setRange(0, 100)
+		unpinchThresholdBox.setSingleStep(1)
+		unpinchThresholdBox.setSuffix("%")
+		unpinchThresholdBox.valueChanged.connect(self.emitUnpinchThresholdChange)
+		self.unpinchThresholdChanged.connect(scheme.gestureDevice.setUnpinchThreshold)
+		
 		
 		font = self.font()
 		font.setPointSize(24)

@@ -126,6 +126,24 @@ class LeapDevice(QtCore.QObject):
 	def getGrabThreshold(self):
 		return self.grabThreshold
 		
+	def setReleaseThreshold(self, threshold):
+		self.releaseThreshold = threshold
+
+	def getReleaseThreshold(self):
+		return self.releaseThreshold
+		
+	def setPinchThreshold(self, threshold):
+		self.pinchThreshold = threshold
+
+	def getPinchThreshold(self):
+		return self.pinchThreshold
+		
+	def setUnpinchThreshold(self, threshold):
+		self.unpinchThreshold = threshold
+
+	def getUnpinchThreshold(self):
+		return self.unpinchThreshold
+		
 	def setScaling(self, scaling):
 		self.scaling = scaling
 
