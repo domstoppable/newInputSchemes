@@ -166,7 +166,6 @@ class ImagesWindow(QtGui.QScrollArea):
 		images = [ f for f in os.listdir(imagePath) if os.path.isfile(os.path.join(imagePath,f)) ]
 		random.shuffle(images)
 		for imageName in images:
-			count = count + 1
 			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(200, 200)
 
 			w = IconLayout(image, imageName)
@@ -361,7 +360,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		scalingBox.setRange(-20, 20)
 		scalingBox.setSingleStep(0.5)
 		scalingBox.setSuffix("x")
-		scalingBox.valueChanged.connect(self.emitScaleChange)
+		scalingBox.valueChanged.connect(scheme.gestureTracker.setScaling)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
 		grabThresholdBox.setValue(100 * scheme.gestureTracker.grabThreshold)
@@ -421,7 +420,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		scheme.gestureTracker.noHands.connect(self.setGrabValue)
 		scheme.gestureTracker.grabbed.connect(self.grabbed)
 		scheme.gestureTracker.released.connect(self.released)
-
+		
 	def addGazeControls(self, gazeTracker):
 		self.gazeTracker = gazeTracker
 		dwellDurationBox = QtGui.QDoubleSpinBox()
@@ -438,6 +437,13 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		dwellRangeBox.setSuffix("px")
 		dwellRangeBox.valueChanged.connect(self.dwellRangeChanged.emit)
 		
+		attentionDurationBox = QtGui.QDoubleSpinBox()
+		attentionDurationBox.setValue(gazeTracker.getAttentionStalePeriod())
+		attentionDurationBox.setRange(0, 5)
+		attentionDurationBox.setSingleStep(.1)
+		attentionDurationBox.setSuffix("s")
+		attentionDurationBox.valueChanged.connect(gazeTracker.setAttentionStalePeriod)
+
 		calibrateButton = QtGui.QPushButton('Calibrate gaze')
 		calibrateButton.setCheckable(True)
 		calibrateButton.clicked.connect(self.showGazeCalibration)
@@ -468,9 +474,6 @@ class DeviceOptionsWindow(QtGui.QWidget):
 	def startGrabCalibration(self):
 		self.calibratingGrab = True
 		
-	def emitScaleChange(self, value):
-		self.scalingChanged.emit(value)
-	
 	def emitGrabThresholdChange(self, value):
 		self.grabThresholdChanged.emit(value / 100)
 	

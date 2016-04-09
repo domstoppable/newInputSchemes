@@ -36,10 +36,6 @@ def main(selectedScheme, app=None):
 
 	window.optionsWindow = DeviceOptionsWindow()
 	if hasattr(scheme, 'gestureTracker'):
-		window.optionsWindow.scalingChanged.connect(scheme.setScaling)
-		window.optionsWindow.grabThresholdChanged.connect(scheme.setGrabThreshold)
-		window.optionsWindow.releaseThresholdChanged.connect(scheme.setReleaseThreshold)
-		
 		window.optionsWindow.addGestureControls(scheme)
 		
 	if hasattr(scheme, 'gazeTracker'):

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import sys, os, inspect
+import signal
 import logging, time
 
 src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
@@ -24,10 +25,31 @@ app = QtGui.QApplication(sys.argv)
 appWindow = None
 scheme = None
 
+def bailOut(*args):
+	global app
+	
+	try:
+		if scheme is not None:
+			scheme.stop()
+		app.exit()
+	except Exception as exc:
+		print(exc)
+		pass
+	sys.exit(1)
+	
+signal.signal(signal.SIGTERM, bailOut)
+signal.signal(signal.SIGINT, bailOut)
+
+
 def schemeLoaded():
 	global app, appWindow, scheme
 	appWindow.hide()
 	appWindow = DragAndDropTask.main(scheme, app=app)
+	
+#def displayError(msg):
+#	msgBox = QtGui.QMessageBox()
+#	msgBox.setText("An error has occurred :(\n\n%s" % msg);
+#	msgBox.exec();
 
 def schemeSelected(schemeName):
 	global app, appWindow, scheme
@@ -38,6 +60,7 @@ def schemeSelected(schemeName):
 			schemeLoaded()
 		else:
 			scheme.ready.connect(schemeLoaded)
+			scheme.error.connect(appWindow.displayError)
 		
 		logging.debug('Loaded scheme %s', schemeName)
 	except Exception as exc:
@@ -57,6 +80,7 @@ def main(args):
 	appWindow = InputScheme.SchemeSelector()
 	appWindow.show()
 	appWindow.selected.connect(schemeSelected)
+	appWindow.closed.connect(bailOut)
 	app.exec_()
 	
 if __name__ == '__main__':

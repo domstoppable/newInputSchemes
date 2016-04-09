@@ -25,6 +25,9 @@ class LeapDevice(QtCore.QObject):
 		self.controller.set_policy_flags(Leap.Controller.POLICY_BACKGROUND_FRAMES);
 		
 		self.calibrating = False
+		
+		self.scaling = 1.0
+		
 		self.minGrab = 30
 		self.maxGrab = 450
 		
@@ -99,6 +102,7 @@ class LeapDevice(QtCore.QObject):
 							
 					delta = metaHand.updatePosition()
 					if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
+						delta = [p * self.scaling for p in delta]
 						self.moved.emit(delta)
 					
 	def toggleCalibration(self):
@@ -116,7 +120,19 @@ class LeapDevice(QtCore.QObject):
 				self.maxGrab = 400
 			logging.info("Calibrated to: %d - %d" % (self.minGrab, self.maxGrab))
 	
-	def exit(self):
+	def setGrabThreshold(self, threshold):
+		self.grabThreshold = threshold
+
+	def getGrabThreshold(self):
+		return self.grabThreshold
+		
+	def setScaling(self, scaling):
+		self.scaling = scaling
+
+	def getScaling(self):
+		return self.scaling
+		
+	def stop(self):
 		self.timer.stop()
 
 class HandyHand():

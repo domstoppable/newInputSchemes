@@ -12,6 +12,7 @@ pyMouse = PyMouse()
 class InputScheme(QtCore.QObject):
 	imageMoved = QtCore.Signal(str, str)
 	ready = QtCore.Signal()
+	error = QtCore.Signal(object)
 	
 	def __init__(self, window=None):
 
@@ -27,7 +28,7 @@ class InputScheme(QtCore.QObject):
 	def start(self):
 		pass
 
-	def quit(self):
+	def stop(self):
 		pass
 		
 	def setWindow(self, window=None):
@@ -134,6 +135,7 @@ class LookGrabLookDropScheme(InputScheme):
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
+			self.gazeTracker.error.connect(self.error.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -159,24 +161,19 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
-		gaze = self.gazeTracker.getGaze()
+		gaze = self.gazeTracker.getAttentiveGaze()
 		self.doGrab(gaze[0], gaze[1])
 		
 	def released(self, hand):
-		gaze = self.gazeTracker.getGaze()
+		gaze = self.gazeTracker.getAttentiveGaze()
 		self.doRelease(gaze[0], gaze[1])
 
 	def setScaling(self, value):
 		pass
 
-	def setGrabThreshold(self, value):
-		self.gestureTracker.grabThreshold = value
-
-	def setReleaseThreshold(self, value):
-		self.gestureTracker.releaseThreshold = value
-		
-	def quit(self):
-		self.gestureTracker.exit()
+	def stop(self):
+		self.gestureTracker.stop()
+		self.gazeTracker.stop()
 
 class MouseOnlyScheme(InputScheme):
 	def __init__(self, window=None):
@@ -264,14 +261,8 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def setScaling(self, value):
 		self.scale = value
 
-	def setGrabThreshold(self, value):
-		self.gestureTracker.grabThreshold = value
-
-	def setReleaseThreshold(self, value):
-		self.gestureTracker.releaseThreshold = value
-
-	def quit(self):
-		self.gestureTracker.exit()
+	def stop(self):
+		self.gestureTracker.stop()
 
 class LeapMovesMeScheme(LeapOnlyScheme):
 	def __init__(self, window=None):
@@ -283,6 +274,7 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
+			self.gazeTracker.error.connect(self.error.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -297,7 +289,7 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
-		gaze = self.gazeTracker.getGaze()
+		gaze = self.gazeTracker.getAttentiveGaze()
 		pyMouse.press(int(gaze[0]), int(gaze[1]))
 		
 	def moved(self, delta):
@@ -313,6 +305,7 @@ class GazeAndKeyboardScheme(InputScheme):
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
+			self.gazeTracker.error.connect(self.error.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -320,27 +313,25 @@ class GazeAndKeyboardScheme(InputScheme):
 	def isReady(self):
 		return self.gazeTracker.isReady()
 
-	def start(self):
-		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
-		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
-
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.installEventFilter(self)
 		window.feedbackWindow.showEye()
+		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 		
 	def eventFilter(self, widget, event):
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
-			gaze = self.gazeTracker.getGaze()
+			gaze = self.gazeTracker.getAttentiveGaze()
 			self.doGrab(gaze[0], gaze[1])
 		elif event.type() == QtCore.QEvent.KeyRelease and not event.isAutoRepeat():
-			gaze = self.gazeTracker.getGaze()
+			gaze = self.gazeTracker.getAttentiveGaze()
 			self.doRelease(gaze[0], gaze[1])
             
 		return QtGui.QWidget.eventFilter(self, widget, event)
 
-	def quit(self):
-		pass
+	def stop(self):
+		self.gazeTracker.stop()
 
 class GazeOnlyScheme(InputScheme):
 	def __init__(self, window=None):
@@ -351,6 +342,7 @@ class GazeOnlyScheme(InputScheme):
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
+			self.gazeTracker.error.connect(self.error.emit)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -365,7 +357,6 @@ class GazeOnlyScheme(InputScheme):
 		window.feedbackWindow.showEye()
 		
 	def onFixate(self, position):
-		
 		widget = QtGui.QApplication.instance().widgetAt(position.x, position.y)
 		while widget != None:
 			if isinstance(widget, IconLayout):
@@ -384,8 +375,8 @@ class GazeOnlyScheme(InputScheme):
 			else:
 				self.doRelease(position.x, position.y)
 		
-	def quit(self):
-		self.gazeTracker.exit()
+	def stop(self):
+		self.gazeTracker.stop()
 
 class DraggingIcon(QtGui.QMdiSubWindow):
 	def __init__(self, fromIcon, parentWindow):
@@ -405,6 +396,8 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 
 class SchemeSelector(QtGui.QWidget):
 	selected = QtCore.Signal(object)
+	closed = QtCore.Signal()
+	
 	def __init__(self):
 		super().__init__()
 		
@@ -431,19 +424,26 @@ class SchemeSelector(QtGui.QWidget):
 			layout.addWidget(b)
 			
 		self.label = QtGui.QLabel()
+		self.errorLabel = QtGui.QLabel()
+		
+	def displayText(self, msg):
+		self.label.setText('<font size="14"><b><center>%s</center></b></font>' % msg)
+		
+	def displayError(self, msg):
+		self.errorLabel.setText('<font size="6">Error: %s</font>' % msg)
 		
 	def startScheme(self, scheme):
 		while self.layout().count() > 0:
 			item = self.layout().takeAt(0)
 			widget = item.widget()
-			#widget.hide()
 			self.layout().removeWidget(widget)
 			widget.setParent(None)
 			del widget
 			del item
 			
-		self.label.setText('<font size="24"><b><center>Loading.<br>Please wait...</center></b></font>')
+		self.displayText('Loading<br>Please wait...')
 		self.layout().addWidget(self.label)
+		self.layout().addWidget(self.errorLabel)
 		self.selected.emit(scheme)
 		self.update()
 		self.repaint()
@@ -454,3 +454,8 @@ class SchemeSelector(QtGui.QWidget):
 			(desktopSize.width() - self.size().width()) / 2,
 			(desktopSize.height() - self.size().height()) / 2
 		)
+
+	def closeEvent(self, e):
+		self.hide()
+		super().closeEvent(e)
+		self.closed.emit()

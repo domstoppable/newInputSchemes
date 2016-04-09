@@ -25,8 +25,8 @@ def getGazeDevice():
 	
 class EyeTribeServer(QtCore.QObject):
 	outputGenerated = QtCore.Signal(object)
-	ready = QtCore.Signal()
 	error = QtCore.Signal(object)
+	ready = QtCore.Signal()
 	
 	def __init__(self):
 		super().__init__()
@@ -42,6 +42,7 @@ class EyeTribeServer(QtCore.QObject):
 			self.thread.start()
 	
 	def stop(self):
+		print("Buh - I'm dead")
 		self.process.kill()
 		
 	def isReady(self):
@@ -53,6 +54,13 @@ class EyeTribeServer(QtCore.QObject):
 	def _go(self):
 		goodText = 'The Eye Tribe Tracker stands ready!'
 		runningText = 'The Eye Tribe Tracker is already running!'
+		badTexts = [
+			'The tracker device has been connected but is not working',
+			'The Eye Tribe Tracker has been disconnected!',
+			'The Eye Tribe Tracker is waiting to be connected!',
+			'The tracker device has been connected but is not working',
+			'ERR: Could not initialize The Eye Tribe Tracker!',
+		]
 		
 		exe = 'C:\\Program Files (x86)\\EyeTribe\\Server\\EyeTribe.exe'
 		self.process = subprocess.Popen([exe], stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
@@ -66,24 +74,31 @@ class EyeTribeServer(QtCore.QObject):
 					self._ready = True
 					self.ready.emit()
 					
+				if line in badTexts:
+					self.error.emit(line)
+					
 		for line in self.process.stderr.readlines():
+			line = line.decode("utf-8").strip()
 			self.error.emit(line)
-			if not self._ready and  l in runningText:
+			if not self._ready and line in runningText:
 				self._ready = True
 				self.ready.emit()
 
 class _GazeDevice(QtCore.QObject):
 	ready = QtCore.Signal()
+	error = QtCore.Signal(object)
+
 	eyesAppeared = QtCore.Signal(object)
 	eyesDisappeared = QtCore.Signal()
 	fixated = QtCore.Signal(object) # @TODO: make this work
-	
+
 	def __init__(self):
 		super().__init__()
 
 		self.detector = DwellSelect(.33, 75)
 		self.gazePosition = [-99, -99]
 		self.eyePositions = [[-99, -99], [-99, -99]]
+		self.attentionStalePeriod = 2.0 # in seconds
 		self.lastFixation = None
 		self.sawEyesLastTime = None
 		
@@ -96,6 +111,7 @@ class _GazeDevice(QtCore.QObject):
 		self.tracker = EyeTribe()
 		self.server = EyeTribeServer()
 		self.server.ready.connect(self.connectToServer)
+		self.server.error.connect(self.error.emit)
 #		self.tracker.pullmode()
 		self.server.start()
 		self.isReady = self.server.isReady
@@ -117,6 +133,12 @@ class _GazeDevice(QtCore.QObject):
 		
 	def setDwellRange(self, rangeInPixels):
 		self.detector.setRange(rangeInPixels)
+		
+	def setAttentionStalePeriod(self, duration):
+		self.attentionStalePeriod = duration
+		
+	def getAttentionStalePeriod(self):
+		return self.attentionStalePeriod
 		
 	def isRunning(self):
 		return self.timer.isActive()
@@ -166,9 +188,19 @@ class _GazeDevice(QtCore.QObject):
 				self.eyesDisappeared.emit()
 			self.sawEyesLastTime = False
 			
+	def getLastFixation(self):
+		return self.lastFixation
+			
 	def getGaze(self):
 		return self.gazePosition
 		
+	def getAttentiveGaze(self):
+		print(time.time() - self.lastFixation.time)
+		if self.lastFixation is not None and (time.time() - self.lastFixation.time) < self.attentionStalePeriod:
+			return [self.lastFixation.x, self.lastFixation.y]
+		else:
+			return self.gazePosition
+
 	def getEyePositions(self):
 		return self.eyePositions
 		
@@ -223,6 +255,15 @@ class _GazeDevice(QtCore.QObject):
 		
 	def stop(self):
 		self.timer.stop()
-		self.tracker.close()
+		try:
+			self.tracker.close()
+		except:
+			pass
+		threading.Thread(target=self.killTheServerSoon).start()
+	
+	def killTheServerSoon(self):
 		time.sleep(8)
-		self.server.stop()
+		try:
+			self.server.stop()
+		except:
+			pass
