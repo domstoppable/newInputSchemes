@@ -6,6 +6,7 @@ from PySide import QtGui, QtCore
 
 from peyetribe import EyeTribe
 from selectionDetector import DwellSelect, Point
+import settings
 
 STATES = {
 	'STATE_TRACKING_GAZE': 0x01,
@@ -95,10 +96,13 @@ class _GazeDevice(QtCore.QObject):
 	def __init__(self):
 		super().__init__()
 
-		self.detector = DwellSelect(.50, 75)
+		self.detector = DwellSelect(
+			float(settings.gazeValue('dwellDuration')),
+			float(settings.gazeValue('dwellRange'))
+		)
 		self.gazePosition = [-99, -99]
 		self.eyePositions = [[-99, -99], [-99, -99]]
-		self.attentionStalePeriod = 1.0 # in seconds
+		self.attentionStalePeriod = float(settings.gazeValue('attentionPeriod'))
 		self.lastFixation = None
 		self.sawEyesLastTime = None
 		
@@ -129,12 +133,15 @@ class _GazeDevice(QtCore.QObject):
 		
 	def setDwellDuration(self, duration):
 		self.detector.setDuration(duration)
+		settings.setGazeValue('dwellDuration', duration)
 		
 	def setDwellRange(self, rangeInPixels):
 		self.detector.setRange(rangeInPixels)
+		settings.setGazeValue('dwellRange', rangeInPixels)
 		
 	def setAttentionStalePeriod(self, duration):
 		self.attentionStalePeriod = duration
+		settings.setGazeValue('attentionPeriod', duration)
 		
 	def getAttentionStalePeriod(self):
 		return self.attentionStalePeriod

@@ -325,14 +325,6 @@ class InputFeedbackWindow(QtGui.QWidget):
 		self._updateIcons()
 
 class DeviceOptionsWindow(QtGui.QWidget):
-	scalingChanged = QtCore.Signal(object)
-	grabThresholdChanged = QtCore.Signal(object)
-	pinchThresholdChanged = QtCore.Signal(object)
-	releaseThresholdChanged = QtCore.Signal(object)
-	unpinchThresholdChanged = QtCore.Signal(object)
-	dwellDurationChanged = QtCore.Signal(float)
-	dwellRangeChanged = QtCore.Signal(float)
-	
 	def __init__(self):
 		super().__init__()
 		
@@ -361,43 +353,38 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.gestureTracker = scheme.gestureTracker
 		scalingBox = QtGui.QDoubleSpinBox()
 		scalingBox.setValue(scheme.gestureTracker.getScaling())
-		scalingBox.setRange(-20, 20)
+		scalingBox.setRange(-50, 50)
 		scalingBox.setSingleStep(0.5)
 		scalingBox.setSuffix("x")
 		scalingBox.valueChanged.connect(scheme.gestureTracker.setScaling)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
-		grabThresholdBox.setValue(100 * scheme.gestureTracker.grabThreshold)
+		grabThresholdBox.setValue(scheme.gestureTracker.grabThreshold)
 		grabThresholdBox.setRange(0, 100)
 		grabThresholdBox.setSingleStep(1)
 		grabThresholdBox.setSuffix("%")
-		grabThresholdBox.valueChanged.connect(self.emitGrabThresholdChange)
-		self.grabThresholdChanged.connect(scheme.gestureTracker.setGrabThreshold)
+		grabThresholdBox.valueChanged.connect(scheme.gestureTracker.setGrabThreshold)
 		
 		releaseThresholdBox = QtGui.QDoubleSpinBox()
-		releaseThresholdBox.setValue(100 * scheme.gestureTracker.releaseThreshold)
+		releaseThresholdBox.setValue(scheme.gestureTracker.releaseThreshold)
 		releaseThresholdBox.setRange(0, 100)
 		releaseThresholdBox.setSingleStep(1)
 		releaseThresholdBox.setSuffix("%")
-		releaseThresholdBox.valueChanged.connect(self.emitReleaseThresholdChange)
-		self.releaseThresholdChanged.connect(scheme.gestureTracker.setReleaseThreshold)
+		releaseThresholdBox.valueChanged.connect(scheme.gestureTracker.setReleaseThreshold)
 
 		pinchThresholdBox = QtGui.QDoubleSpinBox()
-		pinchThresholdBox.setValue(100 * scheme.gestureTracker.pinchThreshold)
+		pinchThresholdBox.setValue(scheme.gestureTracker.pinchThreshold)
 		pinchThresholdBox.setRange(0, 100)
 		pinchThresholdBox.setSingleStep(1)
 		pinchThresholdBox.setSuffix("%")
-		pinchThresholdBox.valueChanged.connect(self.emitPinchThresholdChange)
-		self.pinchThresholdChanged.connect(scheme.gestureTracker.setPinchThreshold)
+		pinchThresholdBox.valueChanged.connect(scheme.gestureTracker.setPinchThreshold)
 		
 		unpinchThresholdBox = QtGui.QDoubleSpinBox()
-		unpinchThresholdBox.setValue(100 * scheme.gestureTracker.unpinchThreshold)
+		unpinchThresholdBox.setValue(scheme.gestureTracker.unpinchThreshold)
 		unpinchThresholdBox.setRange(0, 100)
 		unpinchThresholdBox.setSingleStep(1)
 		unpinchThresholdBox.setSuffix("%")
-		unpinchThresholdBox.valueChanged.connect(self.emitUnpinchThresholdChange)
-		self.unpinchThresholdChanged.connect(scheme.gestureTracker.setUnpinchThreshold)
-		
+		unpinchThresholdBox.valueChanged.connect(scheme.gestureTracker.setUnpinchThreshold)		
 		
 		font = self.font()
 		font.setPointSize(24)
@@ -484,18 +471,6 @@ class DeviceOptionsWindow(QtGui.QWidget):
 	def startGrabCalibration(self):
 		self.calibratingGrab = True
 		
-	def emitGrabThresholdChange(self, value):
-		self.grabThresholdChanged.emit(value / 100)
-	
-	def emitReleaseThresholdChange(self, value):
-		self.releaseThresholdChanged.emit(value / 100)
-		
-	def emitPinchThresholdChange(self, value):
-		self.grabThresholdChanged.emit(value / 100)
-	
-	def emitUnpinchThresholdChange(self, value):
-		self.releaseThresholdChanged.emit(value / 100)
-		
 	def grabbed(self):
 		font = self.currentGrabBox.font()
 		font.setBold(True)
@@ -521,8 +496,6 @@ class DeviceOptionsWindow(QtGui.QWidget):
 	def toggleCalibration(self):		
 		self.gestureTracker.toggleCalibration()
 		self.calibrateButton.setChecked(self.gestureTracker.calibrating)
-		
-
 
 if __name__ == '__main__':
 	import sys

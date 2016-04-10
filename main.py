@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import sys, os, inspect
 import signal
-import logging, time
+import logging, time, settings
 
 src_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 arch_dir = 'lib/x64' if sys.maxsize > 2**32 else 'lib/x86'
@@ -52,6 +52,7 @@ def schemeSelected(schemeName, participantID):
 		filename='%s/%d.log' % (participantPath, int(time.time())),
 		level=logging.DEBUG,
 	)
+	settings.load(participantID)
 
 	try:
 		scheme = getattr(InputScheme, schemeName)()
@@ -63,7 +64,7 @@ def schemeSelected(schemeName, participantID):
 		
 		logging.debug('Loaded scheme %s for participant %s' % (schemeName, participantID))
 	except Exception as exc:
-		QtGui.QMessageBox.critical(self, 'An error has occurred :(', exc)
+		QtGui.QMessageBox.critical(None, 'An error has occurred :(', exc)
 		
 		exc_type, exc_obj, exc_tb = sys.exc_info()
 		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

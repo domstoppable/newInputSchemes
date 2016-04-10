@@ -1,9 +1,7 @@
-import logging
-
-import LeapPython
-
+import logging, settings
 from PySide import QtGui, QtCore
 
+import LeapPython
 import Leap
 from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
 
@@ -26,14 +24,13 @@ class LeapDevice(QtCore.QObject):
 		
 		self.calibrating = False
 		
-		self.scaling = 7.0
+		self.scaling = float(settings.gestureValue('scaling'))
+		self.minGrab = float(settings.gestureValue('minGrab'))
+		self.maxGrab = float(settings.gestureValue('maxGrab'))
 		
-		self.minGrab = 30
-		self.maxGrab = 450
+		self.grabThreshold = float(settings.gestureValue('grabThreshold'))
+		self.releaseThreshold = float(settings.gestureValue('releaseThreshold'))
 		
-		self.grabThreshold = 0.96
-		self.releaseThreshold = 0.94
-	
 		self.pinchThreshold = 0.85
 		self.unpinchThreshold = 0.70
 	
@@ -83,20 +80,20 @@ class LeapDevice(QtCore.QObject):
 					self.grabValued.emit(grabStrength)
 					self.pinchValued.emit(hand.pinch_strength)
 					if not metaHand.grabbing:
-						if grabStrength >= self.grabThreshold:
+						if grabStrength >= self.grabThreshold / 100.0:
 							metaHand.grabbing = True
 							self.grabbed.emit(hand)
 					else:
-						if grabStrength <= self.releaseThreshold:
+						if grabStrength <= self.releaseThreshold / 100.0:
 							metaHand.grabbing = False
 							self.released.emit(hand)
 							
 					if not metaHand.pinching:
-						if hand.pinch_strength >= self.pinchThreshold:
+						if hand.pinch_strength >= self.pinchThreshold / 100.0:
 							metaHand.pinching = True
 							self.pinched.emit(hand)
 					else:
-						if hand.pinch_strength <= self.unpinchThreshold:
+						if hand.pinch_strength <= self.unpinchThreshold / 100.0:
 							metaHand.pinching = False
 							self.unpinched.emit(hand)
 							
@@ -122,13 +119,15 @@ class LeapDevice(QtCore.QObject):
 	
 	def setGrabThreshold(self, threshold):
 		self.grabThreshold = threshold
+		settings.setGestureValue('grabThreshold', threshold)
 
 	def getGrabThreshold(self):
 		return self.grabThreshold
 		
 	def setReleaseThreshold(self, threshold):
 		self.releaseThreshold = threshold
-
+		settings.setGestureValue('releaseThreshold', threshold)
+		
 	def getReleaseThreshold(self):
 		return self.releaseThreshold
 		
@@ -146,7 +145,8 @@ class LeapDevice(QtCore.QObject):
 		
 	def setScaling(self, scaling):
 		self.scaling = scaling
-
+		settings.setGestureValue('scaling', scaling)
+		
 	def getScaling(self):
 		return self.scaling
 		
