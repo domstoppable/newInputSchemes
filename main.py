@@ -45,11 +45,6 @@ def schemeLoaded():
 	global app, appWindow, scheme
 	appWindow.hide()
 	appWindow = DragAndDropTask.main(scheme, app=app)
-	
-#def displayError(msg):
-#	msgBox = QtGui.QMessageBox()
-#	msgBox.setText("An error has occurred :(\n\n%s" % msg);
-#	msgBox.exec();
 
 def schemeSelected(schemeName):
 	global app, appWindow, scheme

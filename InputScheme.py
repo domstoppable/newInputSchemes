@@ -161,11 +161,11 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
-		gaze = self.gazeTracker.getAttentiveGaze()
+		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		self.doGrab(gaze[0], gaze[1])
 		
 	def released(self, hand):
-		gaze = self.gazeTracker.getAttentiveGaze()
+		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		self.doRelease(gaze[0], gaze[1])
 
 	def setScaling(self, value):
@@ -289,7 +289,7 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
-		gaze = self.gazeTracker.getAttentiveGaze()
+		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		pyMouse.press(int(gaze[0]), int(gaze[1]))
 		
 	def moved(self, delta):
@@ -322,10 +322,10 @@ class GazeAndKeyboardScheme(InputScheme):
 		
 	def eventFilter(self, widget, event):
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
-			gaze = self.gazeTracker.getAttentiveGaze()
+			gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 			self.doGrab(gaze[0], gaze[1])
 		elif event.type() == QtCore.QEvent.KeyRelease and not event.isAutoRepeat():
-			gaze = self.gazeTracker.getAttentiveGaze()
+			gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 			self.doRelease(gaze[0], gaze[1])
             
 		return QtGui.QWidget.eventFilter(self, widget, event)

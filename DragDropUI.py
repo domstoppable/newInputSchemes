@@ -355,6 +355,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.tableElementCount = 0
 		
 	def addGestureControls(self, scheme):
+		self.gestureTracker = scheme.gestureTracker
 		scalingBox = QtGui.QDoubleSpinBox()
 		scalingBox.setValue(scheme.scale)
 		scalingBox.setRange(-20, 20)
@@ -405,7 +406,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.currentPinchBox.setAlignment(QtCore.Qt.AlignLeft)
 		self.currentPinchBox.setFont(font)
 		
-		self.calibrateButton = QtGui.QPushButton('Current grab')
+		self.calibrateButton = QtGui.QPushButton('Calibrate grab')
 		self.calibrateButton.setCheckable(True)
 		self.calibrateButton.clicked.connect(self.toggleCalibration)
 		
@@ -514,8 +515,8 @@ class DeviceOptionsWindow(QtGui.QWidget):
 			self.currentPinchBox.setText('%.1f%% ' % (100*value))
 	
 	def toggleCalibration(self):		
-		self.leapDevice.toggleCalibration()
-		self.calibrateButton.setChecked(self.leapDevice.calibrating)
+		self.gestureTracker.toggleCalibration()
+		self.calibrateButton.setChecked(self.gestureTracker.calibrating)
 		
 
 

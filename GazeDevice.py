@@ -42,7 +42,6 @@ class EyeTribeServer(QtCore.QObject):
 			self.thread.start()
 	
 	def stop(self):
-		print("Buh - I'm dead")
 		self.process.kill()
 		
 	def isReady(self):
@@ -80,7 +79,7 @@ class EyeTribeServer(QtCore.QObject):
 		for line in self.process.stderr.readlines():
 			line = line.decode("utf-8").strip()
 			self.error.emit(line)
-			if not self._ready and line in runningText:
+			if not self._ready and runningText in line:
 				self._ready = True
 				self.ready.emit()
 
@@ -194,13 +193,20 @@ class _GazeDevice(QtCore.QObject):
 	def getGaze(self):
 		return self.gazePosition
 		
-	def getAttentiveGaze(self):
-		print(time.time() - self.lastFixation.time)
+	def getAttentiveGaze(self, clear=False):
 		if self.lastFixation is not None and (time.time() - self.lastFixation.time) < self.attentionStalePeriod:
-			return [self.lastFixation.x, self.lastFixation.y]
+			gaze = [self.lastFixation.x, self.lastFixation.y]
 		else:
-			return self.gazePosition
-
+			gaze = self.gazePosition
+			
+		if clear:
+			self.lastFixation = None
+			
+		return gaze
+			
+	def clearLastFixation(self):
+		self.lastFixation = None
+			
 	def getEyePositions(self):
 		return self.eyePositions
 		
