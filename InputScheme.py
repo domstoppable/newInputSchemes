@@ -17,20 +17,19 @@ class InputScheme(QtCore.QObject):
 	def __init__(self, window=None):
 		super().__init__()
 		self.grabbedIcons = []
-		self.destination = None
 		self.window = window
 		self._ready = False
 		
 		self.preselectedIcon = None
 		
 	def changePreselectedIcon(self, pos):
-		if self.preselectedIcon is not None and hasattr(self.preselectedIcon, 'setUnhighlighted'):
-			self.preselectedIcon.setUnhighlighted()
+		if self.preselectedIcon is not None and hasattr(self.preselectedIcon, 'setUnhovered'):
+			self.preselectedIcon.setUnhovered()
 			
 		icon = self.findWidgetAt(pos[0], pos[1])
-		if icon is not None and hasattr(icon, 'setHighlighted'):
+		if icon is not None and hasattr(icon, 'setHovered'):
 			self.preselectedIcon = icon
-			self.preselectedIcon.setHighlighted()
+			self.preselectedIcon.setHovered()
 		else:
 			self.preselectedIcon = None
 	
@@ -90,20 +89,15 @@ class InputScheme(QtCore.QObject):
 	def grabImage(self, image):
 		# only allow one image to be grabbed for now...
 		for icon in self.grabbedIcons:
-			icon._unhighlight()
+			icon.setUnselected()
 		del self.grabbedIcons[:]
 		
-		image._highlight()
+		image.setSelected()
 		self.grabbedIcons.append(image)
 		
 		sound.play("select.wav")
 		
 	def moveImages(self, folder):
-		self.destination = folder
-		QtCore.QTimer.singleShot(0, self._moveImages)
-		
-	def _moveImages(self):
-		folder = self.destination
 		if len(self.grabbedIcons) == 0:
 			return
 
@@ -112,23 +106,19 @@ class InputScheme(QtCore.QObject):
 			if p is not None:
 				p.layout().removeWidget(icon)
 				icon.setParent(None)
-			icon._unhighlight()
 			self.imageMoved.emit(icon.text, folder.text)
 		
 		self.grabbedIcons = []
 		
-		folder.blink.emit()
+		folder.blink()
 		sound.play("drop.wav")
 
 	def releaseImages(self):
-		QtCore.QTimer.singleShot(0, self._releaseImages)
-		
-	def _releaseImages(self):
 		if len(self.grabbedIcons) == 0:
 			return
 		
 		for icon in self.grabbedIcons:
-			icon._unhighlight()
+			icon.setUnselected()
 
 		self.grabbedIcons = []
 		sound.play("release.wav")

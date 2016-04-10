@@ -72,19 +72,13 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		self.closed.emit()
 
 class IconLayout(QtGui.QWidget):
-	highlight = QtCore.Signal()
-	unhighlight = QtCore.Signal()
-	blink = QtCore.Signal()
-
 	def __init__(self, image, text):
 		super().__init__()
 		self.image = image
 		self.text = text
-		self.highlighted = False
-
-		self.highlight.connect(self._highlight)
-		self.unhighlight.connect(self._unhighlight)
-		self.blink.connect(self._blink)
+		
+		self.selected = False
+		self.hovered = False
 
 		self.imageWidget = QtGui.QLabel()
 		self.imageWidget.setAlignment(QtCore.Qt.AlignCenter)
@@ -94,14 +88,11 @@ class IconLayout(QtGui.QWidget):
 		self.labelWidget.setText('<font size="32"><center>%s</center></font>' % self.text)
 		
 		self.selectionEffect = QtGui.QGraphicsColorizeEffect(self)
-		self.setGraphicsEffect(self.selectionEffect)
-		self.selectionEffect.setEnabled(False)
+		self.selectionEffect.setColor(QtCore.Qt.darkGreen)
+		self.selectionEffect.setEnabled(True)
 
-		glow = QtGui.QGraphicsDropShadowEffect(self)
-		glow.setColor(QtGui.QColor(255, 255, 255))
-		glow.setOffset(0, 0)
-		glow.setBlurRadius(15)
-		self.labelWidget.setGraphicsEffect(glow)
+		self.hoverEffect = QtGui.QGraphicsColorizeEffect(self)
+		self.hoverEffect.setEnabled(True)
 
 		self.initUI()
 
@@ -113,32 +104,42 @@ class IconLayout(QtGui.QWidget):
 		layout.addWidget(self.imageWidget)
 		layout.addWidget(self.labelWidget)
 		
-		self.setHighlight(False)
+		self.setHovered(False)
 		
-	@QtCore.Slot()
-	def _highlight(self):
-		self.setHighlight(True)
+	def setUnhovered(self):
+		self.setHovered(False)
 		
-	@QtCore.Slot()
-	def _unhighlight(self):
-		self.setHighlight(False)
-		
-	def toggleHighlight(self):
-		self.setHighlight(not self.graphicsEffect().isEnabled())
-		
-	def setHighlighted(self):
-		self.setHighlight(True)
-		
-	def setUnhighlighted(self):
-		self.setHighlight(False)
-		
-	def setHighlight(self, enabled):
-		self.graphicsEffect().setEnabled(enabled)
+	def setHovered(self, enabled=True):
+		self.hovered = enabled
 		self.update()
 		
-	def _blink(self):
-		self.setHighlight(True)
-		QtCore.QTimer.singleShot(250, self.setUnhighlighted)
+	def setUnselected(self):
+		self.setSelected(False)
+		
+	def setSelected(self, enabled=True):
+		self.selected = enabled
+		self.update()
+
+	def blink(self):
+		self.setSelected(True)
+		QtCore.QTimer.singleShot(250, self.setUnselected)
+		
+	def paintEvent(self, event):
+		super().paintEvent(event)
+		if self.selected:
+			bg = QtGui.QColor(QtCore.Qt.darkGreen)
+		elif self.hovered:
+			bg = QtGui.QColor(QtCore.Qt.blue)
+		else:
+			#bg = QtGui.QColor(128, 128, 128)
+			bg = None
+
+		if bg is not None:
+			bg.setAlpha(96)
+			painter = QtGui.QPainter(self)
+			painter.setBrush(bg)
+			painter.setPen(bg)
+			painter.drawRect(0, 0, self.width(), self.height())
 
 class FolderIcon(IconLayout):
 	def initUI(self):
@@ -149,7 +150,7 @@ class FolderIcon(IconLayout):
 		layout.addWidget(self.labelWidget)
 		layout.addWidget(self.imageWidget)
 		
-		self.setHighlight(False)
+		self.setHovered(False)
 
 class ImagesWindow(QtGui.QScrollArea):
 	def __init__(self):
