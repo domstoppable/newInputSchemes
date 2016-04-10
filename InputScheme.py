@@ -423,17 +423,30 @@ class DraggingIcon(QtGui.QMdiSubWindow):
 		self.show()
 
 class SchemeSelector(QtGui.QWidget):
-	selected = QtCore.Signal(object)
+	selected = QtCore.Signal(object, object)
 	closed = QtCore.Signal()
 	
 	def __init__(self):
 		super().__init__()
 		
 		self.setWindowTitle('Project 2 Launcher')
+		font = self.font()
+		font.setPointSize(18)
+		self.setFont(font)
 		
 		layout = QtGui.QVBoxLayout()
 		self.setLayout(layout)
 		
+		self.participantIDBox = QtGui.QLineEdit()
+		self.participantIDBox.setAlignment(QtCore.Qt.AlignCenter)
+		
+		participantInfoWidget = QtGui.QWidget()
+		participantInfoWidget.setLayout(QtGui.QHBoxLayout())
+		participantInfoWidget.layout().addWidget(QtGui.QLabel("Participant ID"))
+		participantInfoWidget.layout().addWidget(self.participantIDBox)
+		
+		layout.addWidget(participantInfoWidget)
+
 		components = [
 			{'scheme':'LookGrabLookDropScheme', 'label': 'Gaze + gesture'},
 			{'scheme':'LeapMovesMeScheme', 'label': 'Gaze + gesture with motion'},
@@ -445,9 +458,6 @@ class SchemeSelector(QtGui.QWidget):
 		
 		for component in components:
 			b = QtGui.QPushButton(component['label'])
-			font = b.font()
-			font.setPointSize(18)
-			b.setFont(font)
 			b.clicked.connect(partial(self.startScheme, component['scheme']))
 			layout.addWidget(b)
 			
@@ -461,20 +471,24 @@ class SchemeSelector(QtGui.QWidget):
 		self.errorLabel.setText('<font size="6">Error: %s</font>' % msg)
 		
 	def startScheme(self, scheme):
-		while self.layout().count() > 0:
-			item = self.layout().takeAt(0)
-			widget = item.widget()
-			self.layout().removeWidget(widget)
-			widget.setParent(None)
-			del widget
-			del item
-			
-		self.displayText('Loading<br>Please wait...')
-		self.layout().addWidget(self.label)
-		self.layout().addWidget(self.errorLabel)
-		self.selected.emit(scheme)
-		self.update()
-		self.repaint()
+		participantID = self.participantIDBox.text()
+		if participantID.strip() == "":
+			QtGui.QMessageBox.critical(self, 'Error', '<font size="6">Please enter a participant ID</font>')
+		else:
+			while self.layout().count() > 0:
+				item = self.layout().takeAt(0)
+				widget = item.widget()
+				self.layout().removeWidget(widget)
+				widget.setParent(None)
+				del widget
+				del item
+				
+			self.displayText('Loading<br>Please wait...')
+			self.layout().addWidget(self.label)
+			self.layout().addWidget(self.errorLabel)
+			self.selected.emit(scheme, participantID)
+			self.update()
+			self.repaint()
 
 	def resizeEvent(self, e):
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()

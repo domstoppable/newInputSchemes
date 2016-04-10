@@ -15,12 +15,6 @@ from DragDropUI import *
 import InputScheme
 import DragAndDropTask
 
-logging.basicConfig(
-	format='%(levelname)-8s %(asctime)s %(message)s',
-	filename='logs/%d.log' % int(time.time()),
-	level=logging.DEBUG,
-)
-
 app = QtGui.QApplication(sys.argv)
 appWindow = None
 scheme = None
@@ -40,15 +34,25 @@ def bailOut(*args):
 signal.signal(signal.SIGTERM, bailOut)
 signal.signal(signal.SIGINT, bailOut)
 
-
 def schemeLoaded():
 	global app, appWindow, scheme
 	appWindow.hide()
 	appWindow = DragAndDropTask.main(scheme, app=app)
 
-def schemeSelected(schemeName):
+def schemeSelected(schemeName, participantID):
 	global app, appWindow, scheme
 	# need to keep a handle on the window, or else it will be garbage collected
+	
+	participantPath = 'logs/%s' % participantID
+	if not os.path.isdir(participantPath):
+		os.makedirs(participantPath)
+
+	logging.basicConfig(
+		format='%(levelname)-8s %(asctime)s %(message)s',
+		filename='%s/%d.log' % (participantPath, int(time.time())),
+		level=logging.DEBUG,
+	)
+
 	try:
 		scheme = getattr(InputScheme, schemeName)()
 		if scheme.isReady():
@@ -57,11 +61,9 @@ def schemeSelected(schemeName):
 			scheme.ready.connect(schemeLoaded)
 			scheme.error.connect(appWindow.displayError)
 		
-		logging.debug('Loaded scheme %s', schemeName)
+		logging.debug('Loaded scheme %s for participant %s' % (schemeName, participantID))
 	except Exception as exc:
-		msgBox = QtGui.QMessageBox()
-		msgBox.setText("An error has occurred :(\n\n%s" % exc);
-		msgBox.exec();
+		QtGui.QMessageBox.critical(self, 'An error has occurred :(', exc)
 		
 		exc_type, exc_obj, exc_tb = sys.exc_info()
 		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -71,7 +73,7 @@ def schemeSelected(schemeName):
 
 def main(args):
 	global app, appWindow
-	logging.info('Main app started')
+
 	appWindow = InputScheme.SchemeSelector()
 	appWindow.show()
 	appWindow.selected.connect(schemeSelected)
