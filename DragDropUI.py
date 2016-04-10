@@ -94,6 +94,8 @@ class IconLayout(QtGui.QWidget):
 		self.hoverEffect = QtGui.QGraphicsColorizeEffect(self)
 		self.hoverEffect.setEnabled(True)
 
+		self.setMinimumSize(225, 250)
+
 		self.initUI()
 
 	def initUI(self):
@@ -131,8 +133,8 @@ class IconLayout(QtGui.QWidget):
 		elif self.hovered:
 			bg = QtGui.QColor(QtCore.Qt.blue)
 		else:
-			#bg = QtGui.QColor(128, 128, 128)
 			bg = None
+			#bg = QtGui.QColor(128, 128, 128)
 
 		if bg is not None:
 			bg.setAlpha(96)
@@ -160,14 +162,14 @@ class ImagesWindow(QtGui.QScrollArea):
 
 	def initUI(self):
 		container = QtGui.QWidget()
-		layout = FlowLayout(spacing=15)
+		layout = FlowLayout(spacing=0)
 		container.setLayout(layout)
 	
 		imagePath = './assets/animals/'
 		images = [ f for f in os.listdir(imagePath) if os.path.isfile(os.path.join(imagePath,f)) ]
 		random.shuffle(images)
 		for imageName in images:
-			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(200, 200)
+			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(200, 175)
 
 			w = IconLayout(image, imageName)
 			layout.addWidget(w)
@@ -187,7 +189,7 @@ class FoldersWindow(QtGui.QScrollArea):
 
 	def initUI(self):
 		container = QtGui.QWidget()
-		layout = FlowLayout(spacing=30)
+		layout = FlowLayout(spacing=0)
 		
 		image = QtGui.QImage('assets/folder.png').scaled(200, 200)
 		folderNames = [
@@ -460,6 +462,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 			[calibrateButton, ''],
 			['Dwell duration', dwellDurationBox],
 			['Dwell range', dwellRangeBox],
+			['Attention period', dwellRangeBox],
 		])
 		
 	def showGazeCalibration(self):

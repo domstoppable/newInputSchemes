@@ -95,10 +95,10 @@ class _GazeDevice(QtCore.QObject):
 	def __init__(self):
 		super().__init__()
 
-		self.detector = DwellSelect(.33, 75)
+		self.detector = DwellSelect(.50, 75)
 		self.gazePosition = [-99, -99]
 		self.eyePositions = [[-99, -99], [-99, -99]]
-		self.attentionStalePeriod = 2.0 # in seconds
+		self.attentionStalePeriod = 1.0 # in seconds
 		self.lastFixation = None
 		self.sawEyesLastTime = None
 		
