@@ -43,8 +43,6 @@ def main(selectedScheme, app=None):
 		gazeCalibrationWindow.closed.connect(showMainWindow)
 		gazeCalibrationWindow.show()
 		
-		window.optionsWindow.dwellDurationChanged.connect(scheme.gazeTracker.setDwellDuration)
-		window.optionsWindow.dwellRangeChanged.connect(scheme.gazeTracker.setDwellRange)
 		window.optionsWindow.addGazeControls(scheme.gazeTracker)
 	else:
 		showMainWindow()

@@ -87,13 +87,6 @@ class IconLayout(QtGui.QWidget):
 		self.labelWidget = QtGui.QLabel()
 		self.labelWidget.setText('<font size="32"><center>%s</center></font>' % self.text)
 		
-		self.selectionEffect = QtGui.QGraphicsColorizeEffect(self)
-		self.selectionEffect.setColor(QtCore.Qt.darkGreen)
-		self.selectionEffect.setEnabled(True)
-
-		self.hoverEffect = QtGui.QGraphicsColorizeEffect(self)
-		self.hoverEffect.setEnabled(True)
-
 		self.setMinimumSize(225, 250)
 
 		self.initUI()
@@ -124,20 +117,20 @@ class IconLayout(QtGui.QWidget):
 
 	def blink(self):
 		self.setSelected(True)
-		QtCore.QTimer.singleShot(250, self.setUnselected)
+		QtCore.QTimer.singleShot(500, self.setUnselected)
 		
 	def paintEvent(self, event):
 		super().paintEvent(event)
 		if self.selected:
 			bg = QtGui.QColor(QtCore.Qt.darkGreen)
+			bg.setAlpha(128)
 		elif self.hovered:
-			bg = QtGui.QColor(QtCore.Qt.blue)
+			bg = QtGui.QColor(QtCore.Qt.darkGreen)
+			bg.setAlpha(48)
 		else:
 			bg = None
-			#bg = QtGui.QColor(128, 128, 128)
 
 		if bg is not None:
-			bg.setAlpha(96)
 			painter = QtGui.QPainter(self)
 			painter.setBrush(bg)
 			painter.setPen(bg)
@@ -424,14 +417,14 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		dwellDurationBox.setRange(0, 5)
 		dwellDurationBox.setSingleStep(.1)
 		dwellDurationBox.setSuffix("s")
-		dwellDurationBox.valueChanged.connect(self.dwellDurationChanged.emit)
+		dwellDurationBox.valueChanged.connect(gazeTracker.setDwellDuration)
 		
 		dwellRangeBox = QtGui.QDoubleSpinBox()
 		dwellRangeBox.setValue(gazeTracker.getDwellRange())
 		dwellRangeBox.setRange(0, 500)
 		dwellRangeBox.setSingleStep(10)
 		dwellRangeBox.setSuffix("px")
-		dwellRangeBox.valueChanged.connect(self.dwellRangeChanged.emit)
+		dwellRangeBox.valueChanged.connect(gazeTracker.setDwellRange)
 		
 		attentionDurationBox = QtGui.QDoubleSpinBox()
 		attentionDurationBox.setValue(gazeTracker.getAttentionStalePeriod())
@@ -449,7 +442,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 			[calibrateButton, ''],
 			['Dwell duration', dwellDurationBox],
 			['Dwell range', dwellRangeBox],
-			['Attention period', dwellRangeBox],
+			['Attention memory', attentionDurationBox],
 		])
 		
 	def showGazeCalibration(self):
