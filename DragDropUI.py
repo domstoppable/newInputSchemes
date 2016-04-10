@@ -357,7 +357,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 	def addGestureControls(self, scheme):
 		self.gestureTracker = scheme.gestureTracker
 		scalingBox = QtGui.QDoubleSpinBox()
-		scalingBox.setValue(scheme.scale)
+		scalingBox.setValue(scheme.gestureTracker.getScaling())
 		scalingBox.setRange(-20, 20)
 		scalingBox.setSingleStep(0.5)
 		scalingBox.setSuffix("x")

@@ -89,7 +89,8 @@ class _GazeDevice(QtCore.QObject):
 
 	eyesAppeared = QtCore.Signal(object)
 	eyesDisappeared = QtCore.Signal()
-	fixated = QtCore.Signal(object) # @TODO: make this work
+	moved = QtCore.Signal(object)
+	fixated = QtCore.Signal(object)
 
 	def __init__(self):
 		super().__init__()
@@ -114,7 +115,6 @@ class _GazeDevice(QtCore.QObject):
 #		self.tracker.pullmode()
 		self.server.start()
 		self.isReady = self.server.isReady
-
 
 	def connectToServer(self):
 		logging.debug("Eyetribe server ready - connecting tracker!")
@@ -164,6 +164,7 @@ class _GazeDevice(QtCore.QObject):
 
 				if True:
 					self.gazePosition = [gazeFrame.avg.x, gazeFrame.avg.y]
+					self.moved.emit(self.gazePosition)
 					if not self.sawEyesLastTime or self.sawEyesLastTime is None:
 						self.eyesAppeared.emit(self.gazePosition)
 					self.sawEyesLastTime = True

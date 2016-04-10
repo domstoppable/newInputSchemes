@@ -15,13 +15,25 @@ class InputScheme(QtCore.QObject):
 	error = QtCore.Signal(object)
 	
 	def __init__(self, window=None):
-
 		super().__init__()
 		self.grabbedIcons = []
 		self.destination = None
 		self.window = window
 		self._ready = False
 		
+		self.preselectedIcon = None
+		
+	def changePreselectedIcon(self, pos):
+		if self.preselectedIcon is not None and hasattr(self.preselectedIcon, 'setUnhighlighted'):
+			self.preselectedIcon.setUnhighlighted()
+			
+		icon = self.findWidgetAt(pos[0], pos[1])
+		if icon is not None and hasattr(icon, 'setHighlighted'):
+			self.preselectedIcon = icon
+			self.preselectedIcon.setHighlighted()
+		else:
+			self.preselectedIcon = None
+	
 	def isReady(self):
 		return self._ready
 		
@@ -136,6 +148,7 @@ class LookGrabLookDropScheme(InputScheme):
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
 			self.gazeTracker.error.connect(self.error.emit)
+			self.gazeTracker.moved.connect(self.changePreselectedIcon)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -215,15 +228,15 @@ class MouseOnlyScheme(InputScheme):
 		self.doRelease(position[0], position[1])
 			
 	def moveIcon(self):
+		pos = pyMouse.position()
 		if self.floatingIcon:
-			pos = pyMouse.position()
 			self.floatingIcon.move(pos[0] - self.floatingIcon.width()/2, pos[1]-self.floatingIcon.height()/2)
-			
+		self.changePreselectedIcon(pos)
+
 class LeapOnlyScheme(MouseOnlyScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
 
-		self.scale = 8.5
 		self.gestureTracker = LeapDevice()
 		super().__init__(window)
 
@@ -254,8 +267,8 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def moved(self, delta):
 		location = pyMouse.position()
 		pyMouse.move(
-			int(location[0] + delta[0] * self.scale),
-			int(location[1] - delta[1] * self.scale)
+			int(location[0] + delta[0]),
+			int(location[1] - delta[1])
 		)
 			
 	def setScaling(self, value):
@@ -275,6 +288,7 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
 			self.gazeTracker.error.connect(self.error.emit)
+			self.gazeTracker.moved.connect(self.changePreselectedIcon)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -292,6 +306,28 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		pyMouse.press(int(gaze[0]), int(gaze[1]))
 		
+	def doGrab(self, x, y):
+		if super().doGrab(x, y):
+			try:
+				self.gazeTracker.moved.disconnect(self.changePreselectedIcon)
+			except:
+				pass
+			self.gestureTracker.moved.connect(self.changePreselectedIcon)
+			return True
+		else:
+			return False
+
+	def doRelease(self, x, y):
+		if super().doRelease(x, y):
+			try:
+				self.gestureTracker.moved.disconnect(self.changePreselectedIcon)
+			except:
+				pass
+			self.gazeTracker.moved.connect(self.changePreselectedIcon)
+			return True
+		else:
+			return False
+			
 	def moved(self, delta):
 		if self.floatingIcon:
 			super().moved(delta)
@@ -306,6 +342,7 @@ class GazeAndKeyboardScheme(InputScheme):
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
 			self.gazeTracker.error.connect(self.error.emit)
+			self.gazeTracker.moved.connect(self.changePreselectedIcon)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
@@ -343,6 +380,7 @@ class GazeOnlyScheme(InputScheme):
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
 			self.gazeTracker.error.connect(self.error.emit)
+			self.gazeTracker.moved.connect(self.changePreselectedIcon)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))

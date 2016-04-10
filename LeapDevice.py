@@ -26,7 +26,7 @@ class LeapDevice(QtCore.QObject):
 		
 		self.calibrating = False
 		
-		self.scaling = 1.0
+		self.scaling = 7.0
 		
 		self.minGrab = 30
 		self.maxGrab = 450

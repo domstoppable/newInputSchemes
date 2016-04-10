@@ -108,19 +108,17 @@ class CalibrationWindow(QtGui.QWidget):
 		
 	def keyPressEvent(self, event):
 		super().keyPressEvent(event)
-		if event.key() == QtCore.Qt.Key_Escape:
+		if event.key() in [QtCore.Qt.Key_Escape, QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
 			self.close()
 			if self.gazeTracker.isCalibrating():
 				self.gazeTracker.cancelCalibration()
 		elif event.key() == QtCore.Qt.Key_Space:
-			if not self.started:
-				self.started = True
-				self.startCalibration()
-				self.eyes.opacity = 0.15
-			else:
-				self.close()
-				if self.gazeTracker.isCalibrating():
-					self.gazeTracker.cancelCalibration()
+			if self.gazeTracker.isCalibrating():
+				self.gazeTracker.cancelCalibration()
+				
+			self.started = True
+			self.startCalibration()
+			self.eyes.opacity = 0.15
 		
 	def startCalibration(self, points=None):
 		logging.debug("calibration started")
