@@ -222,7 +222,7 @@ class HandyHand(QtCore.QObject):
 		self.position = [-1, -1, -1]
 		self.lastFixation = None
 		self.staleTimerStart = None
-		self.attentionStalePeriod = settings.gestureValue('attentionPeriod')
+		self.attentionStalePeriod = float(settings.gestureValue('attentionPeriod'))
 		
 		self.detector = DwellSelect(
 			float(settings.gestureValue('dwellDuration')),
@@ -303,11 +303,10 @@ class HandyHand(QtCore.QObject):
 		return self.attentionStalePeriod
 		
 	def getAttentivePosition(self, clear=False):
+		position = self.position
 		if self.lastFixation is not None:
 			if self.staleTimerStart is None or (time.time() - self.staleTimerStart) < self.attentionStalePeriod:
 				position = [self.lastFixation.x, self.lastFixation.y, self.lastFixation.z]
-			else:
-				position = self.position
 			
 		if clear:
 			self.lastFixation = None

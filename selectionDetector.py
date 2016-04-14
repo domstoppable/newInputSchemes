@@ -90,7 +90,6 @@ class DwellSelect(SelectionDetector):
 			point = self.points[i]
 			
 			if distance(self.points[0], point) > self.range:
-#				print("Out of range! ", self.range)
 				break
 				
 			if self.points[0].time - point.time > self.minimumDelay:
