@@ -231,8 +231,8 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.attentivePoint = None
 		super().__init__(window)
 		
-	def changePreselectedIcon(self, pos, forRealThough=False):
-		if forRealThough or self.attentivePoint is None:
+	def changePreselectedIcon(self, pos, override=False):
+		if override or self.attentivePoint is None:
 			super().changePreselectedIcon(pos)
 
 	def start(self):
@@ -314,6 +314,15 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 	def isReady(self):
 		return self.gazeTracker.isReady()
 		
+	def changePreselectedIcon(self, pos, override=None):
+		if override is None:
+			override = self.floatingIcon is None
+			
+		if len(pos) == 3:
+			pos = pyMouse.position()
+			
+		super().changePreselectedIcon(pos, override)
+		
 	def setWindow(self, window):
 		super().setWindow(window)
 		window.feedbackWindow.showEye()
@@ -330,21 +339,13 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 				self.gazeTracker.moved.disconnect(self.changePreselectedIcon)
 			except:
 				pass
-			self.gestureTracker.moved.connect(self.changePreselectedIcon)
 			return True
 		else:
 			return False
 
 	def doRelease(self, x, y):
-		if super().doRelease(x, y):
-			try:
-				self.gestureTracker.moved.disconnect(self.changePreselectedIcon)
-			except:
-				pass
-			self.gazeTracker.moved.connect(self.changePreselectedIcon)
-			return True
-		else:
-			return False
+		self.gazeTracker.moved.connect(self.changePreselectedIcon)
+		return super().doRelease(x, y)
 			
 	def moved(self, delta):
 		if self.floatingIcon:
