@@ -1,4 +1,4 @@
-import logging, settings
+import logging, settings, time
 from PySide import QtGui, QtCore
 
 import LeapPython
@@ -18,6 +18,8 @@ class LeapDevice(QtCore.QObject):
 	moved = QtCore.Signal(object)
 	grabValued = QtCore.Signal(object)
 	pinchValued = QtCore.Signal(object)
+	fixated = QtCore.Signal(object)
+	fixationInvalidated = QtCore.Signal(object)
 	
 	def __init__(self):
 		super().__init__()
@@ -38,6 +40,11 @@ class LeapDevice(QtCore.QObject):
 	
 		self.leftHand = HandyHand()
 		self.rightHand = HandyHand()
+		
+		self.leftHand.fixated.connect(self.fixated.emit)
+		self.leftHand.fixationInvalidated.connect(self.fixationInvalidated.emit)
+		self.rightHand.fixated.connect(self.fixated.emit)
+		self.rightHand.fixationInvalidated.connect(self.fixationInvalidated.emit)
 		
 		self.listening = True
 		self.timer = QtCore.QTimer()
@@ -203,15 +210,19 @@ class LeapDevice(QtCore.QObject):
 	def stop(self):
 		self.timer.stop()
 
-class HandyHand():
+class HandyHand(QtCore.QObject):
 	fixated = QtCore.Signal(object)
+	fixationInvalidated = QtCore.Signal(object)
 
 	def __init__(self):
+		super().__init__()
 		self.hand = None
 		self.grabbing = False
 		self.pinching = False
 		self.position = [-1, -1, -1]
 		self.lastFixation = None
+		self.staleTimerStart = None
+		self.attentionStalePeriod = settings.gestureValue('attentionPeriod')
 		
 		self.detector = DwellSelect(
 			float(settings.gestureValue('dwellDuration')),
@@ -239,6 +250,7 @@ class HandyHand():
 			self.hand.stabilized_palm_position.z,
 		]
 		
+		wasInsideDwell = self.detector.inDwell
 		self.detector.addPoint(Point(
 			self.hand.stabilized_palm_position.x,
 			self.hand.stabilized_palm_position.y,
@@ -249,7 +261,15 @@ class HandyHand():
 		if self.detector.selection != None:
 			self.lastFixation = self.detector.clearSelection()
 			self.fixated.emit(self.lastFixation)
-	
+			wasInsideDwell = False
+			self.staleTimerStart = None
+		
+		if wasInsideDwell and not self.detector.inDwell:
+			self.staleTimerStart = time.time()
+		elif self.staleTimerStart is not None and (time.time() - self.staleTimerStart) > self.attentionStalePeriod:
+			self.staleTimerStart = None
+			self.fixationInvalidated.emit(self.lastFixation)
+
 		return delta
 		
 	def isHand(self, hand):
@@ -276,14 +296,22 @@ class HandyHand():
 	def clearLastFixation(self):
 		self.lastFixation = None
 		
+	def setAttentionStalePeriod(self, duration):
+		self.attentionStalePeriod = duration
+		
+	def getAttentionStalePeriod(self):
+		return self.attentionStalePeriod
+		
 	def getAttentivePosition(self, clear=False):
-		if self.lastFixation is not None and (time.time() - self.lastFixation.time) < self.attentionStalePeriod:
-			position = [self.lastFixation.x, self.lastFixation.y, self.lastFixation.z]
-		else:
-			position = self.position
+		if self.lastFixation is not None:
+			if self.staleTimerStart is None or (time.time() - self.staleTimerStart) < self.attentionStalePeriod:
+				position = [self.lastFixation.x, self.lastFixation.y, self.lastFixation.z]
+			else:
+				position = self.position
 			
 		if clear:
 			self.lastFixation = None
+			self.staleTimerStart = None
 			
 		return position
 

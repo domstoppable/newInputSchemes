@@ -228,7 +228,12 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		from LeapDevice import LeapDevice
 
 		self.gestureTracker = LeapDevice()
+		self.attentivePoint = None
 		super().__init__(window)
+		
+	def changePreselectedIcon(self, pos, forRealThough=False):
+		if forRealThough or self.attentivePoint is None:
+			super().changePreselectedIcon(pos)
 
 	def start(self):
 		if super().start():
@@ -244,15 +249,38 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
 		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
+		self.gestureTracker.fixated.connect(self.fixated)
+		self.gestureTracker.fixationInvalidated.connect(self.fixationInvalidated)
+		
+	def fixated(self, handPosition):
+		self.attentivePoint = pyMouse.position()
+		self.changePreselectedIcon(self.attentivePoint, True)
+
+	def fixationInvalidated(self, handPosition):
+		self.attentivePoint = None
 
 	def grabbed(self, hand):
-		location = pyMouse.position()
+		if self.attentivePoint is None:
+			location = pyMouse.position()
+		else:
+			location = self.attentivePoint
+			self.attentivePoint = None
+		
+		previousLocation = pyMouse.position()
 		pyMouse.press(location[0], location[1])
+		pyMouse.move(previousLocation[0], previousLocation[1])
 
 	def released(self, hand):
-		location = pyMouse.position()
+		if self.attentivePoint is None:
+			location = pyMouse.position()
+		else:
+			location = self.attentivePoint
+			self.attentivePoint = None
+
+		previousLocation = pyMouse.position()
 		pyMouse.release(location[0], location[1])
 		self.release(position=location)
+		pyMouse.move(previousLocation[0], previousLocation[1])
 		
 	def moved(self, delta):
 		location = pyMouse.position()

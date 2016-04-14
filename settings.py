@@ -10,9 +10,9 @@ _gestureDefaults = {
 	'releaseThreshold': 94.0,
 	'minGrab': 30,
 	'maxGrab': 450,
-	'dwellDuration': 0.5,
-	'dwellRange': 20,
-	'attentionPeriod': 2,
+	'dwellDuration': 0.1,
+	'dwellRange': 5,
+	'attentionPeriod': 0.5,
 }
 
 _gazeDefaults = {
