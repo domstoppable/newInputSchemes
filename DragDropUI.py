@@ -31,7 +31,19 @@ class DragDropTaskWindow(QtGui.QWidget):
 		font = self.font()
 		font.setPointSize(18)
 		self.setFont(font)
+		self.setMouseTracking(True)
 	
+	def setMouseTracking(self, flag):
+		def recursive_set(parent):
+			for child in parent.findChildren(QtCore.QObject):
+				try:
+					child.setMouseTracking(flag)
+				except:
+					pass
+				recursive_set(child)
+		QtGui.QWidget.setMouseTracking(self, flag)
+		recursive_set(self)
+        
 	def getRemainingImageCount(self):
 		return self.imagesWindow.getRemainingImageCount()
 	
