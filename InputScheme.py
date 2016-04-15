@@ -55,7 +55,6 @@ class InputScheme(QtCore.QObject):
 		return widget
 
 	def doGrab(self, x, y):
-		pyMouse.move(int(x), int(y))
 		widget = self.findWidgetAt(x, y)
 		if widget is not None and not isinstance(widget, FolderIcon):
 			logging.info('Image grabbed %s' % widget.text)
@@ -67,7 +66,6 @@ class InputScheme(QtCore.QObject):
 			return False
 
 	def doRelease(self, x, y):
-		pyMouse.move(int(x), int(y))
 		if len(self.grabbedIcons) == 0:
 			return False
 
@@ -372,19 +370,21 @@ class GazeAndKeyboardScheme(InputScheme):
 
 	def setWindow(self, window):
 		super().setWindow(window)
-		window.installEventFilter(self)
-		window.feedbackWindow.showEye()
-		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
-		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
+		if window is not None:
+			window.installEventFilter(self)
+			window.feedbackWindow.showEye()
+			self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 		
 	def eventFilter(self, widget, event):
+		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
-			gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 			self.doGrab(gaze[0], gaze[1])
+			pyMouse.move(int(gaze[0]), int(gaze[1]))
 		elif event.type() == QtCore.QEvent.KeyRelease and not event.isAutoRepeat():
-			gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 			self.doRelease(gaze[0], gaze[1])
-            
+			pyMouse.move(int(gaze[0]), int(gaze[1]))
+
 		return QtGui.QWidget.eventFilter(self, widget, event)
 
 	def stop(self):
@@ -412,7 +412,8 @@ class GazeOnlyScheme(InputScheme):
 
 	def setWindow(self, window):
 		super().setWindow(window)
-		window.feedbackWindow.showEye()
+		if window is not None:
+			window.feedbackWindow.showEye()
 		
 	def onFixate(self, position):
 		widget = QtGui.QApplication.instance().widgetAt(position.x, position.y)
@@ -432,6 +433,7 @@ class GazeOnlyScheme(InputScheme):
 				self.doGrab(position.x, position.y)
 			else:
 				self.doRelease(position.x, position.y)
+		pyMouse.move(int(position.x), int(position.y))
 		
 	def stop(self):
 		self.gazeTracker.stop()
