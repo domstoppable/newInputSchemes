@@ -1,12 +1,12 @@
-import platform, time
+import platform, os
 from PySide import QtGui, QtCore
 
 def play(sound):
-	if platform.system() == "Linux":
-		return
-		
 	f = "assets/sounds/%s" % sound
-	QtGui.QSound.play(f)
+	if platform.system() == "Linux":
+		os.system('aplay "%s" >/dev/null 2>&1 &' % f)
+	else:
+		QtGui.QSound.play(f)
 
 if __name__ == '__main__':
 	for i in range(3):
