@@ -102,6 +102,7 @@ class _GazeDevice(QtCore.QObject):
 		)
 		self.gazePosition = [-99, -99]
 		self.eyePositions = [[-99, -99], [-99, -99]]
+		self.staleTimerStart = None
 		self.attentionStalePeriod = float(settings.gazeValue('attentionPeriod'))
 		self.lastFixation = None
 		self.sawEyesLastTime = None
@@ -177,17 +178,24 @@ class _GazeDevice(QtCore.QObject):
 					self.sawEyesLastTime = True
 						
 					currentTime = time.time()
-					point = Point(
+					wasInsideDwell = self.detector.inDwell					
+					self.detector.addPoint(Point(
 						gazeFrame.avg.x,
 						gazeFrame.avg.y,
 						0,
 						currentTime,
 						gazeFrame.avg
-					)
-					self.detector.addPoint(point)
+					))
 					if self.detector.selection != None:
 						self.lastFixation = self.detector.clearSelection()
 						self.fixated.emit(self.lastFixation)
+						
+					if wasInsideDwell and not self.detector.inDwell:
+						self.staleTimerStart = time.time()
+					elif self.staleTimerStart is not None and (time.time() - self.staleTimerStart) > self.attentionStalePeriod:
+						self.staleTimerStart = None
+						self.fixationInvalidated.emit(self.lastFixation)
+
 			else:
 				raise(Exception('not tracking: %d' % gazeFrame.state))
 		except Exception as exc:
@@ -202,11 +210,11 @@ class _GazeDevice(QtCore.QObject):
 		return self.gazePosition
 		
 	def getAttentiveGaze(self, clear=False):
-		if self.lastFixation is not None and (time.time() - self.lastFixation.time) < self.attentionStalePeriod:
-			gaze = [self.lastFixation.x, self.lastFixation.y]
-		else:
-			gaze = self.gazePosition
-			
+		gaze = self.gazePosition
+		if self.staleTimerStart is not None:
+			if self.lastFixation is not None and (time.time() - self.staleTimerStart) < self.attentionStalePeriod:
+				gaze = [self.lastFixation.x, self.lastFixation.y]
+				
 		if clear:
 			self.lastFixation = None
 			

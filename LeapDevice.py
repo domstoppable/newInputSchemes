@@ -1,9 +1,11 @@
-import logging, settings
+import logging, settings, time
 from PySide import QtGui, QtCore
 
 import LeapPython
 import Leap
 from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
+
+from selectionDetector import DwellSelect, Point
 
 class LeapDevice(QtCore.QObject):
 	handAppeared = QtCore.Signal(object)
@@ -16,6 +18,8 @@ class LeapDevice(QtCore.QObject):
 	moved = QtCore.Signal(object)
 	grabValued = QtCore.Signal(object)
 	pinchValued = QtCore.Signal(object)
+	fixated = QtCore.Signal(object)
+	fixationInvalidated = QtCore.Signal(object)
 	
 	def __init__(self):
 		super().__init__()
@@ -36,6 +40,11 @@ class LeapDevice(QtCore.QObject):
 	
 		self.leftHand = HandyHand()
 		self.rightHand = HandyHand()
+		
+		self.leftHand.fixated.connect(self.fixated.emit)
+		self.leftHand.fixationInvalidated.connect(self.fixationInvalidated.emit)
+		self.rightHand.fixated.connect(self.fixated.emit)
+		self.rightHand.fixationInvalidated.connect(self.fixationInvalidated.emit)
 		
 		self.listening = True
 		self.timer = QtCore.QTimer()
@@ -150,15 +159,75 @@ class LeapDevice(QtCore.QObject):
 	def getScaling(self):
 		return self.scaling
 		
+	def getDwellDuration(self):
+		return self.leftHand.getDwellDuration()
+		
+	def getDwellRange(self):
+		return self.leftHand.getDwellRange()
+		
+	def setDwellDuration(self, duration):
+		self.leftHand.setDwellDuration(duration)
+		self.rightHand.setDwellDuration(duration)
+		settings.setGestureValue('dwellDuration', duration)
+		
+	def setDwellRange(self, rangeInPixels):
+		self.leftHand.setDwellRange(rangeInPixels)
+		self.rightHand.setDwellRange(rangeInPixels)
+		settings.setGestureValue('dwellRange', rangeInPixels)
+		
+	def setAttentionStalePeriod(self, duration):
+		self.leftHand.setAttentionStalePeriod(duration)
+		self.rightHand.setAttentionStalePeriod(duration)
+		settings.setGestureValue('attentionPeriod', duration)
+		
+	def getAttentionStalePeriod(self):
+		return self.leftHand.getAttentionStalePeriod()
+		
+	def getLastFixation(self):
+		left = self.leftHand.getLastFixation()
+		right = self.rightHand.getLastFixation()
+		if left is None and right is None:
+			return None
+		elif left is None:
+			return right
+		elif right is None:
+			return left
+		elif left.time < right.time:
+			return right
+		else:
+			return left
+			
+	def clearLastFixation(self):
+		self.leftHand.clearLastFixation()
+		self.rightHand.clearLastFixation()
+
+	def getAttentivePosition(self, clear=False):
+		left = self.leftHand.getAttentivePosition(clear)
+		right = self.rightHand.getAttentivePosition(clear)
+		
+		return whichIsLater(left, right)
+
 	def stop(self):
 		self.timer.stop()
 
-class HandyHand():
+class HandyHand(QtCore.QObject):
+	fixated = QtCore.Signal(object)
+	fixationInvalidated = QtCore.Signal(object)
+
 	def __init__(self):
+		super().__init__()
 		self.hand = None
 		self.grabbing = False
 		self.pinching = False
 		self.position = [-1, -1, -1]
+		self.lastFixation = None
+		self.staleTimerStart = None
+		self.attentionStalePeriod = float(settings.gestureValue('attentionPeriod'))
+		
+		self.detector = DwellSelect(
+			float(settings.gestureValue('dwellDuration')),
+			float(settings.gestureValue('dwellRange'))
+		)
 		
 	def setHand(self, hand):
 		if self.hand is None or self.hand.id != hand.id:
@@ -180,7 +249,27 @@ class HandyHand():
 			self.hand.stabilized_palm_position.y,
 			self.hand.stabilized_palm_position.z,
 		]
-	
+		
+		wasInsideDwell = self.detector.inDwell
+		self.detector.addPoint(Point(
+			self.hand.stabilized_palm_position.x,
+			self.hand.stabilized_palm_position.y,
+			self.hand.stabilized_palm_position.z,
+			time.time(),
+			self.hand
+		))
+		if self.detector.selection != None:
+			self.lastFixation = self.detector.clearSelection()
+			self.fixated.emit(self.lastFixation)
+			wasInsideDwell = False
+			self.staleTimerStart = None
+		
+		if wasInsideDwell and not self.detector.inDwell:
+			self.staleTimerStart = time.time()
+		elif self.staleTimerStart is not None and (time.time() - self.staleTimerStart) > self.attentionStalePeriod:
+			self.staleTimerStart = None
+			self.fixationInvalidated.emit(self.lastFixation)
+
 		return delta
 		
 	def isHand(self, hand):
@@ -189,3 +278,50 @@ class HandyHand():
 		if self.hand is None or hand is None: return False
 		return self.hand.id == hand.id
 		
+	def getDwellDuration(self):
+		return self.detector.minimumDelay
+		
+	def getDwellRange(self):
+		return self.detector.range
+		
+	def setDwellDuration(self, duration):
+		self.detector.setDuration(duration)
+		
+	def setDwellRange(self, rangeInPixels):
+		self.detector.setRange(rangeInPixels)
+
+	def getLastFixation(self):
+		return self.lastFixation
+		
+	def clearLastFixation(self):
+		self.lastFixation = None
+		
+	def setAttentionStalePeriod(self, duration):
+		self.attentionStalePeriod = duration
+		
+	def getAttentionStalePeriod(self):
+		return self.attentionStalePeriod
+		
+	def getAttentivePosition(self, clear=False):
+		position = self.position
+		if self.lastFixation is not None:
+			if self.staleTimerStart is None or (time.time() - self.staleTimerStart) < self.attentionStalePeriod:
+				position = [self.lastFixation.x, self.lastFixation.y, self.lastFixation.z]
+			
+		if clear:
+			self.lastFixation = None
+			self.staleTimerStart = None
+			
+		return position
+
+def whichIsLater(left, right):
+	if left is None and right is None:
+		return None
+	elif left is None:
+		return right
+	elif right is None:
+		return left
+	elif left.time < right.time:
+		return right
+	else:
+		return left

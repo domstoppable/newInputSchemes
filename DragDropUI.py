@@ -372,6 +372,27 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.currentPinchBox.setAlignment(QtCore.Qt.AlignLeft)
 		self.currentPinchBox.setFont(font)
 		
+		dwellDurationBox = QtGui.QDoubleSpinBox()
+		dwellDurationBox.setValue(scheme.gestureTracker.getDwellDuration())
+		dwellDurationBox.setRange(0, 5)
+		dwellDurationBox.setSingleStep(.1)
+		dwellDurationBox.setSuffix("s")
+		dwellDurationBox.valueChanged.connect(scheme.gestureTracker.setDwellDuration)
+		
+		dwellRangeBox = QtGui.QDoubleSpinBox()
+		dwellRangeBox.setValue(scheme.gestureTracker.getDwellRange())
+		dwellRangeBox.setRange(0, 500)
+		dwellRangeBox.setSingleStep(10)
+		dwellRangeBox.setSuffix("px")
+		dwellRangeBox.valueChanged.connect(scheme.gestureTracker.setDwellRange)
+		
+		attentionDurationBox = QtGui.QDoubleSpinBox()
+		attentionDurationBox.setValue(scheme.gestureTracker.getAttentionStalePeriod())
+		attentionDurationBox.setRange(0, 5)
+		attentionDurationBox.setSingleStep(.1)
+		attentionDurationBox.setSuffix("s")
+		attentionDurationBox.valueChanged.connect(scheme.gestureTracker.setAttentionStalePeriod)
+		
 		self.calibrateButton = QtGui.QPushButton('Calibrate grab')
 		self.calibrateButton.setCheckable(True)
 		self.calibrateButton.clicked.connect(self.toggleCalibration)
@@ -382,6 +403,9 @@ class DeviceOptionsWindow(QtGui.QWidget):
 			['Movement scaling', scalingBox],
 			['Grab threshold', grabThresholdBox],
 			['Release threshold', releaseThresholdBox],
+			['Dwell duration', dwellDurationBox],
+			['Dwell range', dwellRangeBox],
+			['Attention memory', attentionDurationBox],
 #			['Pinch threshold', pinchThresholdBox],
 #			['Unpinch threshold', unpinchThresholdBox],
 #			['Current pinch value', self.currentPinchBox],
