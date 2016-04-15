@@ -238,17 +238,18 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
 		self.gestureTracker.moved.connect(self.moved)
+		self.gestureTracker.fixated.connect(self.fixated)
+		self.gestureTracker.fixationInvalidated.connect(self.fixationInvalidated)
 		logging.debug('Leap connected')
 		
 	def setWindow(self, window):
 		super().setWindow(window)
-		window.feedbackWindow.showHand()
-		self.gestureTracker.handAppeared.connect(window.feedbackWindow.setHandGood)
-		self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
-		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
-		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
-		self.gestureTracker.fixated.connect(self.fixated)
-		self.gestureTracker.fixationInvalidated.connect(self.fixationInvalidated)
+		if window is not None:
+			window.feedbackWindow.showHand()
+			self.gestureTracker.handAppeared.connect(window.feedbackWindow.setHandGood)
+			self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
+			self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
+			self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
 		
 	def fixated(self, handPosition):
 		self.attentivePoint = pyMouse.position()
