@@ -19,27 +19,18 @@ class DragDropTaskWindow(QtGui.QWidget):
 		self.mainContainer.setLayout(QtGui.QHBoxLayout())
 		self.mainContainer.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
 		
-		#self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
 		self.foldersWindow = FoldersWindow()
 		self.imagesWindow = ImagesWindow()
 		self.mainContainer.layout().addWidget(self.foldersWindow)
 		self.mainContainer.layout().addWidget(self.imagesWindow)
 		
-		self.setMouseTracking(True)
 		self.loaded = True
 		
 		self.feedbackWindow.show()
 		
-	def setMouseTracking(self, flag):
-		def recursive_set(parent):
-			for child in parent.findChildren(QtCore.QObject):
-				try:
-					child.setMouseTracking(flag)
-				except:
-					pass
-				recursive_set(child)
-		QtGui.QWidget.setMouseTracking(self, flag)
-		recursive_set(self)
+		font = self.font()
+		font.setPointSize(18)
+		self.setFont(font)
 	
 	def getRemainingImageCount(self):
 		return self.imagesWindow.getRemainingImageCount()
@@ -77,6 +68,7 @@ class DragDropTaskWindow(QtGui.QWidget):
 class IconLayout(QtGui.QWidget):
 	def __init__(self, image, text):
 		super().__init__()
+
 		self.image = image
 		self.text = text
 		
@@ -87,8 +79,8 @@ class IconLayout(QtGui.QWidget):
 		self.imageWidget.setAlignment(QtCore.Qt.AlignCenter)
 		self.imageWidget.setPixmap(QtGui.QPixmap.fromImage(self.image))
 
-		self.labelWidget = QtGui.QLabel()
-		self.labelWidget.setText('<font size="32"><center>%s</center></font>' % self.text)
+		self.labelWidget = QtGui.QLabel(self.text)
+		self.labelWidget.setAlignment(QtCore.Qt.AlignCenter)
 		
 		self.setMinimumSize(225, 250)
 
