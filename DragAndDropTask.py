@@ -43,7 +43,7 @@ def main(selectedScheme, app=None):
 			incorrect += 1
 			
 		if window.getRemainingImageCount() < 1:
-			score = 10000.0 * (correct / (correct + incorrect)) / (time.time() - startTime)
+			score = 8000.0 * pow(correct / (correct + incorrect), 3) / pow(time.time() - startTime, 0.5)
 			logging.info('Score: %d' % score)
 			QtGui.QMessageBox.information(window, 'Done!', 'Score: %d' % score)
 			window.close()
