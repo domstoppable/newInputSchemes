@@ -81,6 +81,8 @@ def main(selectedScheme, app=None):
 def closeDown():
 	if hasattr(scheme, 'gazeTracker'):
 		scheme.gazeTracker.stop()
+	if hasattr(scheme, 'gestureTracker'):
+		scheme.gestureTracker.stop()
 	
 def showMainWindow():
 	global window, scheme

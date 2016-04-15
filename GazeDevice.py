@@ -232,6 +232,7 @@ class _GazeDevice(QtCore.QObject):
 			
 	def clearLastFixation(self):
 		self.lastFixation = None
+		self.staleTimeStart = None
 			
 	def getEyePositions(self):
 		return self.eyePositions

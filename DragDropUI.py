@@ -32,6 +32,11 @@ class DragDropTaskWindow(QtGui.QWidget):
 		font.setPointSize(18)
 		self.setFont(font)
 		self.setMouseTracking(True)
+		
+	def hide(self):
+		self.optionsWindow.hide()
+		self.feedbackWindow.hide()
+		return super().hide()
 	
 	def setMouseTracking(self, flag):
 		def recursive_set(parent):
