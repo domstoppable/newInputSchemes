@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys, logging
+import sys, logging, time
 
 from PySide import QtGui, QtCore
 
@@ -14,8 +14,12 @@ window = None
 loadingWindow = None
 gazeCalibrationWindow = None
 scheme = None
+
+startTime = None
+correct = 0
+incorrect = 0
 def main(selectedScheme, app=None):
-	global window, gazeCalibrationWindow, scheme
+	global window, gazeCalibrationWindow, scheme, startTime, correct, incorrect
 	
 	scheme = selectedScheme
 	
@@ -27,10 +31,21 @@ def main(selectedScheme, app=None):
 	window.closed.connect(closeDown)
 	
 	def imageMoved(imageName, destination):
+		global window, gazeCalibrationWindow, scheme, startTime, correct, incorrect
 		logging.info('Moved %s to %s', imageName, destination)
 		
+		if startTime is None:
+			startTime = time.time()
+		animalType = imageName.split('_')[0]
+		if animalType.lower() in destination.lower():
+			correct += 1
+		else:
+			incorrect += 1
+			
 		if window.getRemainingImageCount() < 1:
-			QtCore.QTimer.singleShot(500, window.close)
+			score = 10000.0 * (correct / (correct + incorrect)) / (time.time() - startTime)
+			QtGui.QMessageBox.information(window, 'Done!', 'Score: %d' % score)
+			window.close()
 		
 	scheme.imageMoved.connect(imageMoved)
 

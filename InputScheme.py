@@ -407,7 +407,7 @@ class GazeOnlyScheme(InputScheme):
 class DraggingIcon(QtGui.QLabel):
 	def __init__(self, fromIcon, parentWindow):
 		super().__init__(parentWindow)
-		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)		
+		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
 		self.setPixmap(QtGui.QPixmap.fromImage(fromIcon.image.scaled(75, 75)))
 		self.show()
 

@@ -15,6 +15,7 @@ from DragDropUI import *
 import InputScheme
 import DragAndDropTask
 
+QtGui.QApplication.setStyle('Cleanlooks')
 app = QtGui.QApplication(sys.argv)
 appWindow = None
 scheme = None
