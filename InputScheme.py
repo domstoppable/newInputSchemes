@@ -152,14 +152,15 @@ class LookGrabLookDropScheme(InputScheme):
 		
 	def setWindow(self, window):
 		super().setWindow(window)
-		window.feedbackWindow.showEye()
-		window.feedbackWindow.showHand()
-		self.gestureTracker.handAppeared.connect(window.feedbackWindow.setHandGood)
-		self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
-		self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
-		self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
-		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
-		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
+		if window is not None:
+			window.feedbackWindow.showEye()
+			window.feedbackWindow.showHand()
+			self.gestureTracker.handAppeared.connect(window.feedbackWindow.setHandGood)
+			self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
+			self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
+			self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
+			self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
@@ -228,14 +229,14 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		super().__init__(window)
 		
 	def changePreselectedIcon(self, pos, override=False):
-		if override or self.attentivePoint is None:
+		if self.attentivePoint is None or pos == self.attentivePoint:
 			super().changePreselectedIcon(pos)
 
 	def start(self):
 		super().start()
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
-		self.gestureTracker.moved.connect(self.moved)
+		self.gestureTracker.moved.connect(self.handMoved)
 		self.gestureTracker.fixated.connect(self.fixated)
 		self.gestureTracker.fixationInvalidated.connect(self.fixationInvalidated)
 		logging.debug('Leap connected')
@@ -251,7 +252,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		
 	def fixated(self, handPosition):
 		self.attentivePoint = pyMouse.position()
-		self.changePreselectedIcon(self.attentivePoint, True)
+		self.changePreselectedIcon(self.attentivePoint)
 
 	def fixationInvalidated(self, handPosition):
 		self.attentivePoint = None
@@ -281,7 +282,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.release(position=location)
 		pyMouse.move(previousLocation[0], previousLocation[1])
 		
-	def moved(self, delta):
+	def handMoved(self, delta):
 		location = pyMouse.position()
 		pyMouse.move(
 			int(location[0] + round(delta[0])),
@@ -305,50 +306,33 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
 			self.gazeTracker.error.connect(self.error.emit)
-			self.gazeTracker.moved.connect(self.changePreselectedIcon)
+			self.gazeTracker.moved.connect(self.eyesMoved)
 		except Exception as exc:
 			logging.critical('Eyetribe error: %s', exc)
 			raise(Exception('Could not connect to EyeTribe'))
-			
+	
 	def isReady(self):
 		return self.gazeTracker.isReady()
 		
-	def changePreselectedIcon(self, pos, override=None):
-		if override is None:
-			override = self.floatingIcon is None
-			
-		if len(pos) == 3:
-			pos = pyMouse.position()
-			
-		super().changePreselectedIcon(pos, override)
+	def eyesMoved(self, pos):
+		if self.floatingIcon is None:
+			#self.changePreselectedIcon(pos, True)
+			self.changePreselectedIcon(pos)
 		
 	def setWindow(self, window):
 		super().setWindow(window)
-		window.feedbackWindow.showEye()
-		self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
-		self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
+		if window is not None:
+			window.feedbackWindow.showEye()
+			self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
+			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		pyMouse.press(int(gaze[0]), int(gaze[1]))
 		
-	def doGrab(self, x, y):
-		if super().doGrab(x, y):
-			try:
-				self.gazeTracker.moved.disconnect(self.changePreselectedIcon)
-			except:
-				pass
-			return True
-		else:
-			return False
-
-	def doRelease(self, x, y):
-		self.gazeTracker.moved.connect(self.changePreselectedIcon)
-		return super().doRelease(x, y)
-			
-	def moved(self, delta):
-		if self.floatingIcon:
-			super().moved(delta)
+	def handMoved(self, delta):
+		if self.floatingIcon is not None:
+			super().handMoved(delta)
 		
 class GazeAndKeyboardScheme(InputScheme):
 	def __init__(self, window=None):
