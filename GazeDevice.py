@@ -44,12 +44,22 @@ class EyeTribeServer(QtCore.QObject):
 	
 	def stop(self):
 		self.process.kill()
+		self._running = False
 		
 	def isReady(self):
 		return self._ready
 		
 	def isRunning(self):
 		return self._running
+		
+	def killSoon(self):
+		self._running = False
+		time.sleep(8)
+		try:
+			self.stop()
+		except:
+			pass
+
 		
 	def _go(self):
 		goodText = 'The Eye Tribe Tracker stands ready!'
@@ -281,11 +291,5 @@ class _GazeDevice(QtCore.QObject):
 			self.tracker.close()
 		except:
 			pass
-		threading.Thread(target=self.killTheServerSoon).start()
-	
-	def killTheServerSoon(self):
-		time.sleep(8)
-		try:
-			self.server.stop()
-		except:
-			pass
+		if self.server.isRunning():
+			threading.Thread(target=self.server.killSoon).start()

@@ -43,10 +43,19 @@ def main(selectedScheme, app=None):
 			incorrect += 1
 			
 		if window.getRemainingImageCount() < 1:
-			score = 8000.0 * pow(correct / (correct + incorrect), 3) / pow(time.time() - startTime, 0.5)
+			try:
+				score = 8000.0 * pow(correct / (correct + incorrect), 3) / pow(time.time() - startTime, 0.5)
+			except Exception as exc:
+				logging.error('Error calculating score')
+				logging.error('%s' % exc)
+				score = -1
+				
 			logging.info('Score: %d' % score)
-			QtGui.QMessageBox.information(window, 'Done!', 'Score: %d' % score)
-			window.close()
+			closeDown()
+			window.hide()
+			box = QtGui.QMessageBox(QtGui.QMessageBox.Information, 'Done!', 'Score: %d' % score, QtGui.QMessageBox.Ok, window)
+			box.finished.connect(window.close)
+			box.show()
 		
 	scheme.imageMoved.connect(imageMoved)
 
