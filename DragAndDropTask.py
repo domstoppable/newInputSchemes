@@ -61,7 +61,6 @@ def showMainWindow():
 	global window, scheme
 	scheme.setWindow(window)
 	window.showFullScreen()
-	window.tileSubWindows()
 	scheme.start()
 
 if __name__ == '__main__':

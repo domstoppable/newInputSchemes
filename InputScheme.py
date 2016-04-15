@@ -17,7 +17,7 @@ class InputScheme(QtCore.QObject):
 	def __init__(self, window=None):
 		super().__init__()
 		self.grabbedIcons = []
-		self.window = window
+		self.setWindow(window)
 		self._ready = False
 		
 		self.preselectedIcon = None
@@ -185,26 +185,24 @@ class MouseOnlyScheme(InputScheme):
 		self.floatingIcon = None
 		self._ready = True
 		
-	def start(self):
-		if self.window == None:
-			QtCore.QTimer.singleShot(100, self.start)
-			return False
-		else:
+	def setWindow(self, window):
+		super().setWindow(window)
+		if window is not None:
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
 			self.window.mouseMoved.connect(self.moveIcon)
-			return True
-		
-	def setWindow(self, window):
-		super().setWindow(window)
-		if type(self) == MouseOnlyScheme:
-			window.feedbackWindow.close()
+			if type(self) == MouseOnlyScheme:
+				window.feedbackWindow.close()
 		
 	def grab(self, obj, mouseEvent):
 		pos = obj.mapToGlobal(mouseEvent.pos())
 		if self.doGrab(pos.x(), pos.y()):
 			if len(self.grabbedIcons) == 1:
 				self.floatingIcon = DraggingIcon(self.grabbedIcons[0], self.window)
+				self.floatingIcon.move(
+					int(pos.x()-self.floatingIcon.width()/2),
+					int(pos.y()-self.floatingIcon.height()/2)
+				)
 				
 	def release(self, obj=None, mouseEvent=None, position=None):
 		if position is None:
@@ -406,20 +404,11 @@ class GazeOnlyScheme(InputScheme):
 	def stop(self):
 		self.gazeTracker.stop()
 
-class DraggingIcon(QtGui.QMdiSubWindow):
+class DraggingIcon(QtGui.QLabel):
 	def __init__(self, fromIcon, parentWindow):
-		super().__init__()
-		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-		
-		icon = QtGui.QLabel()
-		icon.setPixmap(QtGui.QPixmap.fromImage(fromIcon.image.scaled(75, 75)))
-		self.setWidget(icon)
-		
-		parentWindow.addSubWindow(self, QtCore.Qt.FramelessWindowHint)
-		
-		pos = fromIcon.mapToGlobal(fromIcon.imageWidget.rect().center())
-		
-		self.move(pos.x() , pos.y())
+		super().__init__(parentWindow)
+		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)		
+		self.setPixmap(QtGui.QPixmap.fromImage(fromIcon.image.scaled(75, 75)))
 		self.show()
 
 class SchemeSelector(QtGui.QWidget):

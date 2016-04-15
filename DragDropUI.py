@@ -3,7 +3,7 @@ import os, random
 from PySide import QtGui, QtCore
 from FlowLayout import *
 
-class DragDropTaskWindow(QtGui.QMdiArea):
+class DragDropTaskWindow(QtGui.QWidget):
 	closed = QtCore.Signal()
 	mousePressed = QtCore.Signal(object, object)
 	mouseReleased = QtCore.Signal(object, object)
@@ -15,11 +15,15 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		self.optionsWindow = None
 		self.feedbackWindow = InputFeedbackWindow()
 		
-		self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
+		self.mainContainer = QtGui.QWidget(self)
+		self.mainContainer.setLayout(QtGui.QHBoxLayout())
+		self.mainContainer.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+		
+		#self.setBackground(QtGui.QColor.fromRgb(0, 0, 0))
 		self.foldersWindow = FoldersWindow()
 		self.imagesWindow = ImagesWindow()
-		self.addSubWindow(FixedQMDISubWindow(self.foldersWindow))
-		self.addSubWindow(FixedQMDISubWindow(self.imagesWindow))
+		self.mainContainer.layout().addWidget(self.foldersWindow)
+		self.mainContainer.layout().addWidget(self.imagesWindow)
 		
 		self.setMouseTracking(True)
 		self.loaded = True
@@ -44,22 +48,18 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 		super().keyPressEvent(event)
 		if event.text() == 'o' and self.optionsWindow is not None:
 			self.optionsWindow.show()
+			
+	def mouseMoveEvent(self, event):
+		self.mouseMoved.emit(self, event)
+		return super().mouseMoveEvent(event)
 		
-	def eventFilter(self, obj, event):
-		if not self.loaded or isinstance(obj, QtGui.QPushButton):
-			return False
-
-		if event.type() == QtCore.QEvent.Type.MouseMove:
-			self.mouseMoved.emit(obj, event)
-			return True
-		elif event.type() == QtCore.QEvent.Type.MouseButtonPress:
-			self.mousePressed.emit(obj, event)
-			return True
-		elif event.type() == QtCore.QEvent.Type.MouseButtonRelease:
-			self.mouseReleased.emit(obj, event)
-			return True
-
-		return False
+	def mousePressEvent(self, event):
+		self.mousePressed.emit(self, event)
+		return super().mousePressEvent(event)
+		
+	def mouseReleaseEvent(self, event):
+		self.mouseReleased.emit(self, event)
+		return super().mouseReleaseEvent(event)
 		
 	def closeEvent(self, e):
 		super().closeEvent(e)
@@ -70,6 +70,9 @@ class DragDropTaskWindow(QtGui.QMdiArea):
 			self.feedbackWindow.close()
 			
 		self.closed.emit()
+		
+	def resizeEvent(self, e):
+		self.mainContainer.resize(self.width(), self.height())
 
 class IconLayout(QtGui.QWidget):
 	def __init__(self, image, text):
@@ -199,30 +202,6 @@ class FoldersWindow(QtGui.QScrollArea):
 		container.setLayout(layout)
 		self.setWidget(container)
 		self.setWindowTitle('Folders')
-
-class FixedQMDISubWindow(QtGui.QMdiSubWindow):
-	def __init__(self, child):
-		super().__init__()
-		self.setWidget(child)
-		self.resizeCount = 0
-		self.lockedSize = None
-		self.lockedPosition = None
-		self.setWindowFlags(QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint)
-		
-	def moveEvent(self, event):
-		if self.resizeCount < 2:
-			super().moveEvent(event)
-		else:
-			super().move(self.lockedPosition)
-		
-	def resizeEvent(self, event):
-		super().resizeEvent(event)
-		if self.resizeCount < 2:
-			self.resizeCount += 1
-			self.lockedSize = self.size()
-			self.lockedPosition = self.pos()
-		else:
-			self.resize(self.lockedSize)
 
 class InputFeedbackWindow(QtGui.QWidget):
 	def __init__(self):
