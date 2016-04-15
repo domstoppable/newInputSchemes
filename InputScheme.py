@@ -265,6 +265,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 			location = self.attentivePoint
 			self.attentivePoint = None
 		
+		self.gestureTracker.clearLastFixation()
 		previousLocation = pyMouse.position()
 		pyMouse.press(location[0], location[1])
 		pyMouse.move(previousLocation[0], previousLocation[1])
@@ -276,6 +277,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 			location = self.attentivePoint
 			self.attentivePoint = None
 
+		self.gestureTracker.clearLastFixation()
 		previousLocation = pyMouse.position()
 		pyMouse.release(location[0], location[1])
 		self.release(position=location)
@@ -284,8 +286,8 @@ class LeapOnlyScheme(MouseOnlyScheme):
 	def moved(self, delta):
 		location = pyMouse.position()
 		pyMouse.move(
-			int(location[0] + delta[0]),
-			int(location[1] - delta[1])
+			int(location[0] + round(delta[0])),
+			int(location[1] - round(delta[1]))
 		)
 			
 	def setScaling(self, value):

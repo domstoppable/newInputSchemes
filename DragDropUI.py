@@ -381,9 +381,8 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		
 		dwellRangeBox = QtGui.QDoubleSpinBox()
 		dwellRangeBox.setValue(scheme.gestureTracker.getDwellRange())
-		dwellRangeBox.setRange(0, 500)
-		dwellRangeBox.setSingleStep(10)
-		dwellRangeBox.setSuffix("px")
+		dwellRangeBox.setRange(0, 10)
+		dwellRangeBox.setSingleStep(.5)
 		dwellRangeBox.valueChanged.connect(scheme.gestureTracker.setDwellRange)
 		
 		attentionDurationBox = QtGui.QDoubleSpinBox()
