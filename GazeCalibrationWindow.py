@@ -155,10 +155,6 @@ class CalibrationWindow(QtGui.QWidget):
 			pos[1] - child.height()/2
 		)
 
-	def resizeEvent(self, event):
-		super().resizeEvent(event)
-#		self.centerChildAt(self.label)
-		
 	def goToPoint(self, point):
 		self.animation.setStartValue(self.target.pos())
 		self.animation.setEndValue(QtCore.QPoint(
@@ -202,11 +198,34 @@ class CalibrationWindow(QtGui.QWidget):
 					badPoints.reverse()
 					self.startCalibration(badPoints)
 				else:
-					self.gazeTimer.start(1000/60)
 					self.showCalibratedLabels(calibration)
+					self.showScore()
+	def showScore(self):
+		calibration = self.gazeTracker.getCalibration()
+		if not calibration.result or calibration.points is None:
+			QtGui.QMessageBox.critical(self, 'Calibration failed :(')
+		else:
+			worstAccuracy = None
+			worstMeanErr = None
+			worstStdDev = None
+			for point in calibration.points:
+				if worstAccuracy is None or point.ad < worstAccuracy:
+					worstAccuracy = point.ad
+				if worstMeanErr is None or point.mep > worstMeanErr:
+					worstMeanErr = point.mep
+				if worstStdDev is None or point.asd > worstStdDev:
+					worstStdDev = point.asd
+			text =
+				'Average error: %0.2d\n' +
+				'----------------------\n' + 
+				'Worst accuracy: %0.2d\n' +
+				'Worst mean error: %0.2d\n' +
+				'Worst std dev: %0.2d'
+			text = text % (calibration.deg, worstAccuracy, worstMean, worstStdDev)
+			QtGui.QMessageBox.information(self, text)
 					
 	def showCalibratedLabels(self, calibration=None):
-		self.gazeTimer.start(1000/60)
+		self.gazeTimer.start(1000/30)
 		if calibration is None:
 			calibration = self.gazeTracker.getCalibration()
 		
