@@ -96,7 +96,9 @@ class IconLayout(QtGui.QWidget):
 		self.imageWidget.setAlignment(QtCore.Qt.AlignCenter)
 		self.imageWidget.setPixmap(QtGui.QPixmap.fromImage(self.image))
 
-		self.labelWidget = QtGui.QLabel(self.text)
+		if text[0] == '.':
+			text = ''
+		self.labelWidget = QtGui.QLabel(text)
 		self.labelWidget.setAlignment(QtCore.Qt.AlignCenter)
 		
 		self.setMinimumSize(225, 250)
@@ -184,7 +186,12 @@ class ImagesWindow(QtGui.QScrollArea):
 		self.setWindowTitle('Images')
 		
 	def getRemainingImageCount(self):
-		return self.widget().layout().count()
+		layout = self.widget().layout()
+		count = 0
+		for i in range(layout.count()):
+			if isinstance(layout.itemAt(i).widget(), IconLayout):
+				count = count + 1
+		return count
 		
 class FoldersWindow(QtGui.QScrollArea):
 	def __init__(self):
@@ -198,12 +205,12 @@ class FoldersWindow(QtGui.QScrollArea):
 		
 		image = QtGui.QImage('assets/folder.png').scaled(200, 200)
 		folderNames = [
-			'Cats', 'Cows', 'Dogs', 'Pigs',
-			'Rabbits', 'Birds', 'Bugs', 'Vacation',
-			'Unsorted', 'Misc.', 'Kids', 'Art',
-			'Trip', 'Backup', 'Old', 'Save',
+			'.1,1',	'.1,2',	'.1,3',	'Cats',
+			'Cows', '.2,2', '.2,3',	'.2,4',
+			'.3,1',	'.3,2',	'Dogs',	'.3,4',
+			'.4,1',	'Pigs', '.4,3',	'.4,4'
 		]
-		folderNames = sorted(folderNames)
+		#folderNames = sorted(folderNames)
 		for i in range(len(folderNames)):
 			w = FolderIcon(image, folderNames[i])
 			layout.addWidget(w)

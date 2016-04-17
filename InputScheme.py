@@ -102,7 +102,9 @@ class InputScheme(QtCore.QObject):
 		for icon in self.grabbedIcons:
 			p = icon.parentWidget()
 			if p is not None:
-				p.layout().removeWidget(icon)
+				replacement = QtGui.QWidget(icon.parent())
+				replacement.setMinimumSize(icon.size())
+				p.layout().replaceItem(icon, replacement)
 				icon.setParent(None)
 			self.imageMoved.emit(icon.text, folder.text)
 		

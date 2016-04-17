@@ -73,6 +73,7 @@ class FlowLayout(QtGui.QLayout):
 		self.spaceY = spacing
 
 		self.itemList = []
+		self.needsToBeReplaced = None
 
 	def __del__(self):
 		item = self.takeAt(0)
@@ -80,8 +81,18 @@ class FlowLayout(QtGui.QLayout):
 			item = self.takeAt(0)
 
 	def addItem(self, item):
-		self.itemList.append(item)
+		if self.needsToBeReplaced is not None:
+			for i, existingItem in enumerate(self.itemList):
+				if existingItem.widget() == self.needsToBeReplaced:
+					self.itemList[i] = item
+			self.needsToBeReplaced = None
+		else:
+			self.itemList.append(item)
 
+	def replaceItem(self, oldItem, newItem):
+		self.needsToBeReplaced  = oldItem
+		self.addWidget(newItem)
+		
 	def count(self):
 		return len(self.itemList)
 
@@ -122,7 +133,7 @@ class FlowLayout(QtGui.QLayout):
 
 		size += QtCore.QSize(2 * self.margin, 2 * self.margin)
 		return size
-
+		
 	def doLayout(self, rect, testOnly):
 		x = rect.x()
 		y = rect.y()
