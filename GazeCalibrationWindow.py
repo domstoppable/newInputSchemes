@@ -215,12 +215,11 @@ class CalibrationWindow(QtGui.QWidget):
 					worstMeanErr = point.mep
 				if worstStdDev is None or point.asd > worstStdDev:
 					worstStdDev = point.asd
-			text =
-				'Average error: %0.2d\n' +
-				'----------------------\n' + 
-				'Worst accuracy: %0.2d\n' +
-				'Worst mean error: %0.2d\n' +
-				'Worst std dev: %0.2d'
+			text = 'Average error: %0.2d\n'
+			text = text + '----------------------\n'
+			text = text + 'Worst accuracy: %0.2d\n'
+			text = text + 'Worst mean error: %0.2d\n'
+			text = text + 'Worst std dev: %0.2d'
 			text = text % (calibration.deg, worstAccuracy, worstMean, worstStdDev)
 			QtGui.QMessageBox.information(self, text)
 					
