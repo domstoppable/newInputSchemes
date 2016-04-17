@@ -206,9 +206,9 @@ class FoldersWindow(QtGui.QScrollArea):
 		image = QtGui.QImage('assets/folder.png').scaled(200, 200)
 		folderNames = [
 			'.1,1',	'.1,2',	'.1,3',	'Cats',
-			'Cows', '.2,2', '.2,3',	'.2,4',
+			'.2,1', 'Cows', '.2,3',	'.2,4',
 			'.3,1',	'.3,2',	'Dogs',	'.3,4',
-			'.4,1',	'Pigs', '.4,3',	'.4,4'
+			'Pigs',	'.4,2', '.4,3',	'.4,4'
 		]
 		#folderNames = sorted(folderNames)
 		for i in range(len(folderNames)):
