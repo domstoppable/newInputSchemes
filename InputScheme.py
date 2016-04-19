@@ -161,6 +161,7 @@ class LookGrabLookDropScheme(InputScheme):
 			self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
 			self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 			self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
+			self.gestureTracker.moved.connect(window.feedbackWindow.setHandGood)
 			self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
 			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
@@ -251,6 +252,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 			self.gestureTracker.noHands.connect(window.feedbackWindow.setHandBad)
 			self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 			self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
+			self.gestureTracker.moved.connect(window.feedbackWindow.setHandGood)
 		
 	def fixated(self, handPosition):
 		self.attentivePoint = pyMouse.position()
