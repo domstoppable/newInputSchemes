@@ -220,8 +220,8 @@ class CalibrationWindow(QtGui.QWidget):
 			text = text + 'Worst accuracy: %0.2d\n'
 			text = text + 'Worst mean error: %0.2d\n'
 			text = text + 'Worst std dev: %0.2d'
-			text = text % (calibration.deg, worstAccuracy, worstMean, worstStdDev)
-			QtGui.QMessageBox.information(self, text)
+			text = text % (calibration.deg, worstAccuracy, worstMeanErr, worstStdDev)
+			QtGui.QMessageBox.information(self, 'Results', text)
 					
 	def showCalibratedLabels(self, calibration=None):
 		self.gazeTimer.start(1000/30)
