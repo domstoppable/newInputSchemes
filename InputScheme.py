@@ -449,7 +449,7 @@ class SchemeSelector(QtGui.QWidget):
 		font.setPointSize(18)
 		self.setFont(font)
 		
-		layout = QtGui.QVBoxLayout()
+		layout = QtGui.QGridLayout()
 		self.setLayout(layout)
 		
 		self.participantIDBox = QtGui.QLineEdit()
@@ -457,24 +457,25 @@ class SchemeSelector(QtGui.QWidget):
 		
 		participantInfoWidget = QtGui.QWidget()
 		participantInfoWidget.setLayout(QtGui.QHBoxLayout())
-		participantInfoWidget.layout().addWidget(QtGui.QLabel("Participant ID"))
-		participantInfoWidget.layout().addWidget(self.participantIDBox)
+		participantInfoWidget.layout().addWidget(QtGui.QLabel("Participant ID"), 0, 0, 1, 2)
+		participantInfoWidget.layout().addWidget(self.participantIDBox, 1, 1, 1, 2)
 		
 		layout.addWidget(participantInfoWidget)
 
 		components = [
-			{'scheme':'LookGrabLookDropScheme', 'label': 'Gaze + gesture'},
-			{'scheme':'LeapMovesMeScheme', 'label': 'Gaze + gesture with motion'},
 			{'scheme':'MouseOnlyScheme', 'label': 'Mouse only'},
 			{'scheme':'LeapOnlyScheme', 'label': 'Gesture only'},
-			{'scheme':'GazeAndKeyboardScheme', 'label': 'Gaze and button'},
 			{'scheme':'GazeOnlyScheme', 'label': 'Gaze only'},
+			{'scheme':'GazeAndKeyboardScheme', 'label': 'Gaze + button'},
+			{'scheme':'LookGrabLookDropScheme', 'label': 'Gaze + gesture'},
+			{'scheme':'LeapMovesMeScheme', 'label': 'Gaze + motion'},
 		]
 		
-		for component in components:
-			b = QtGui.QPushButton(component['label'])
-			b.clicked.connect(partial(self.startScheme, component['scheme']))
-			layout.addWidget(b)
+		
+#		for component in components:
+#			b = QtGui.QPushButton(component['label'])
+#			b.clicked.connect(partial(self.startScheme, component['scheme']))
+#			layout.addWidget(b)
 			
 		self.label = QtGui.QLabel()
 		self.errorLabel = QtGui.QLabel()
@@ -499,8 +500,8 @@ class SchemeSelector(QtGui.QWidget):
 				del item
 				
 			self.displayText('Loading<br>Please wait...')
-			self.layout().addWidget(self.label)
-			self.layout().addWidget(self.errorLabel)
+			self.layout().addWidget(self.label, 0, 0, 1, 2)
+			self.layout().addWidget(self.errorLabel, 1, 0, 1, 2)
 			self.selected.emit(scheme, participantID)
 			self.update()
 			self.repaint()
