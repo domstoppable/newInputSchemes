@@ -40,7 +40,7 @@ def schemeLoaded():
 	appWindow.hide()
 	appWindow = DragAndDropTask.main(scheme, app=app)
 
-def schemeSelected(schemeName, participantID):
+def schemeSelected(schemeName, participantID, practiceOnly):
 	global app, appWindow, scheme
 	# need to keep a handle on the window, or else it will be garbage collected
 	
@@ -48,9 +48,14 @@ def schemeSelected(schemeName, participantID):
 	if not os.path.isdir(participantPath):
 		os.makedirs(participantPath)
 
+	if practiceOnly:
+		logFile = '%s/%d-%s-practice.log' % (participantPath, int(time.time()), schemeName)
+	else:
+		logFile = '%s/%d-%s.log' % (participantPath, int(time.time()), schemeName)
+		
 	logging.basicConfig(
 		format='%(levelname)-8s %(asctime)s %(message)s',
-		filename='%s/%d.log' % (participantPath, int(time.time())),
+		filename=logFile,
 		level=logging.DEBUG,
 	)
 	settings.load(participantID)
@@ -63,7 +68,10 @@ def schemeSelected(schemeName, participantID):
 			scheme.ready.connect(schemeLoaded)
 			scheme.error.connect(appWindow.displayError)
 		
-		logging.debug('Loaded scheme %s for participant %s' % (schemeName, participantID))
+		if practiceOnly:
+			logging.debug('Loaded PRACTICE scheme %s for participant %s' % (schemeName, participantID))
+		else:
+			logging.debug('Loaded scheme %s for participant %s' % (schemeName, participantID))
 	except Exception as exc:
 		QtGui.QMessageBox.critical(None, 'An error has occurred :(', '%s' % exc)
 		

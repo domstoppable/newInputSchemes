@@ -438,7 +438,7 @@ class DraggingIcon(QtGui.QLabel):
 		self.show()
 
 class SchemeSelector(QtGui.QWidget):
-	selected = QtCore.Signal(object, object)
+	selected = QtCore.Signal(object, object, bool)
 	closed = QtCore.Signal()
 	
 	def __init__(self):
@@ -449,18 +449,12 @@ class SchemeSelector(QtGui.QWidget):
 		font.setPointSize(18)
 		self.setFont(font)
 		
-		layout = QtGui.QGridLayout()
-		self.setLayout(layout)
+		self.setLayout(QtGui.QGridLayout())
 		
 		self.participantIDBox = QtGui.QLineEdit()
 		self.participantIDBox.setAlignment(QtCore.Qt.AlignCenter)
-		
-		participantInfoWidget = QtGui.QWidget()
-		participantInfoWidget.setLayout(QtGui.QHBoxLayout())
-		participantInfoWidget.layout().addWidget(QtGui.QLabel("Participant ID"), 0, 0, 1, 2)
-		participantInfoWidget.layout().addWidget(self.participantIDBox, 1, 1, 1, 2)
-		
-		layout.addWidget(participantInfoWidget)
+		self.layout().addWidget(QtGui.QLabel('<center>Participant ID</center>'), 0, 0, 1, 2)
+		self.layout().addWidget(self.participantIDBox, 1, 0, 1, 2)
 
 		components = [
 			{'scheme':'MouseOnlyScheme', 'label': 'Mouse only'},
@@ -471,11 +465,22 @@ class SchemeSelector(QtGui.QWidget):
 			{'scheme':'LeapMovesMeScheme', 'label': 'Gaze + motion'},
 		]
 		
-		
-#		for component in components:
-#			b = QtGui.QPushButton(component['label'])
-#			b.clicked.connect(partial(self.startScheme, component['scheme']))
-#			layout.addWidget(b)
+		colors = {
+			'Practice': QtCore.Qt.yellow,
+			'Experiment': QtCore.Qt.green,
+		}
+		for column, heading in enumerate(['Practice', 'Experiment']):
+			self.layout().addWidget(QtGui.QLabel('<center>%s</center>' % heading), 2, column)
+			for rowOffset, component in enumerate(components):
+				row = 3 + rowOffset
+				b = QtGui.QPushButton(component['label'])
+				b.clicked.connect(partial(self.schemeClicked, component['scheme'], heading == 'Practice'))
+				pal = b.palette()
+				pal.setColor(pal.Button, colors[heading])
+				b.setAutoFillBackground(True)
+				b.setPalette(pal)
+				b.update()
+				self.layout().addWidget(b, row, column)
 			
 		self.label = QtGui.QLabel()
 		self.errorLabel = QtGui.QLabel()
@@ -486,10 +491,11 @@ class SchemeSelector(QtGui.QWidget):
 	def displayError(self, msg):
 		self.errorLabel.setText('<font size="6">Error: %s</font>' % msg)
 		
-	def startScheme(self, scheme):
+	def schemeClicked(self, scheme, practiceOnly):
 		participantID = self.participantIDBox.text()
 		if participantID.strip() == "":
 			QtGui.QMessageBox.critical(self, 'Error', '<font size="6">Please enter a participant ID</font>')
+			self.participantIDBox.setFocus()
 		else:
 			while self.layout().count() > 0:
 				item = self.layout().takeAt(0)
@@ -502,9 +508,11 @@ class SchemeSelector(QtGui.QWidget):
 			self.displayText('Loading<br>Please wait...')
 			self.layout().addWidget(self.label, 0, 0, 1, 2)
 			self.layout().addWidget(self.errorLabel, 1, 0, 1, 2)
-			self.selected.emit(scheme, participantID)
 			self.update()
 			self.repaint()
+			
+			self.selected.emit(scheme, participantID, practiceOnly)
+			
 
 	def resizeEvent(self, e):
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()
