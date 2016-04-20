@@ -269,25 +269,25 @@ class LeapOnlyScheme(MouseOnlyScheme):
 			location = pyMouse.position()
 		else:
 			location = self.attentivePoint
-			self.attentivePoint = None
 		
-		self.gestureTracker.clearLastFixation()
 		previousLocation = pyMouse.position()
 		pyMouse.press(location[0], location[1])
 		pyMouse.move(previousLocation[0], previousLocation[1])
+		self.gestureTracker.clearLastFixation()
+		self.attentivePoint = None
 
 	def released(self, hand):
 		if self.attentivePoint is None:
 			location = pyMouse.position()
 		else:
 			location = self.attentivePoint
-			self.attentivePoint = None
 
-		self.gestureTracker.clearLastFixation()
 		previousLocation = pyMouse.position()
 		pyMouse.release(int(location[0]), int(location[1]))
 		self.release(position=location)
 		pyMouse.move(previousLocation[0], previousLocation[1])
+		self.gestureTracker.clearLastFixation()
+		self.attentivePoint = None
 		
 	def handMoved(self, delta):
 		location = pyMouse.position()

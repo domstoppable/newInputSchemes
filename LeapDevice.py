@@ -294,6 +294,7 @@ class HandyHand(QtCore.QObject):
 		return self.lastFixation
 		
 	def clearLastFixation(self):
+		self.staleTimer = None
 		self.lastFixation = None
 		
 	def setAttentionStalePeriod(self, duration):

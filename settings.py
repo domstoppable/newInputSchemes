@@ -12,7 +12,7 @@ _gestureDefaults = {
 	'maxGrab': 450,
 	'dwellDuration': 0.1,
 	'dwellRange': 2,
-	'attentionPeriod': 0.2,
+	'attentionPeriod': 1.0,
 }
 
 _gazeDefaults = {
