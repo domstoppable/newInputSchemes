@@ -55,6 +55,9 @@ class InputScheme(QtCore.QObject):
 		return widget
 
 	def doGrab(self, x, y):
+		if len(self.grabbedIcons) > 0:
+			return
+			
 		widget = self.findWidgetAt(x, y)
 		if widget is not None and not isinstance(widget, FolderIcon):
 			logging.info('Image grabbed %s' % widget.text)
