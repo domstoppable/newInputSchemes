@@ -234,7 +234,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 		self.attentivePoint = None
 		super().__init__(window)
 		
-	def changePreselectedIcon(self, pos, override=False):
+	def changePreselectedIcon(self, pos):
 		if self.attentivePoint is None or pos == self.attentivePoint:
 			super().changePreselectedIcon(pos)
 
@@ -285,7 +285,7 @@ class LeapOnlyScheme(MouseOnlyScheme):
 
 		self.gestureTracker.clearLastFixation()
 		previousLocation = pyMouse.position()
-		pyMouse.release(location[0], location[1])
+		pyMouse.release(int(location[0]), int(location[1]))
 		self.release(position=location)
 		pyMouse.move(previousLocation[0], previousLocation[1])
 		
@@ -323,6 +323,7 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 		
 	def eyesMoved(self, pos):
 		if self.floatingIcon is None:
+			self.attentivePoint = pos
 			#self.changePreselectedIcon(pos, True)
 			self.changePreselectedIcon(pos)
 		
