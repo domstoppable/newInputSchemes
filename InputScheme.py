@@ -129,7 +129,7 @@ class InputScheme(QtCore.QObject):
 	def isGrabbing(self):
 		return len(self.grabbedIcons) > 0
 
-class LookGrabLookDropScheme(InputScheme):
+class GazeAndGestureScheme(InputScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
 		import GazeDevice
@@ -183,7 +183,7 @@ class LookGrabLookDropScheme(InputScheme):
 		self.gestureTracker.stop()
 		self.gazeTracker.stop()
 
-class MouseOnlyScheme(InputScheme):
+class MouseScheme(InputScheme):
 	def __init__(self, window=None):
 		super().__init__(window)
 		
@@ -196,7 +196,7 @@ class MouseOnlyScheme(InputScheme):
 			self.window.mousePressed.connect(self.grab)
 			self.window.mouseReleased.connect(self.release)
 			self.window.mouseMoved.connect(self.moveIcon)
-			if type(self) == MouseOnlyScheme:
+			if type(self) == MouseScheme:
 				window.feedbackWindow.close()
 		
 	def grab(self, obj, mouseEvent):
@@ -226,7 +226,7 @@ class MouseOnlyScheme(InputScheme):
 			self.floatingIcon.move(pos[0] - self.floatingIcon.width()/2, pos[1]-self.floatingIcon.height()/2)
 		self.changePreselectedIcon(pos)
 
-class LeapOnlyScheme(MouseOnlyScheme):
+class GestureScheme(MouseScheme):
 	def __init__(self, window=None):
 		from LeapDevice import LeapDevice
 
@@ -296,13 +296,13 @@ class LeapOnlyScheme(MouseOnlyScheme):
 			int(location[1] - round(delta[1]))
 		)
 			
-	def setScaling(self, value):
-		self.scale = value
+	def setScaling(self, value): # @TODO: remove this
+		self.scale = value       # @TODO: remove this
 
 	def stop(self):
 		self.gestureTracker.stop()
 
-class LeapMovesMeScheme(LeapOnlyScheme):
+class GazeAndMotionScheme(GestureScheme):
 	def __init__(self, window=None):
 		import GazeDevice
 
@@ -320,6 +320,10 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 	
 	def isReady(self):
 		return self.gazeTracker.isReady()
+	
+	def fixated(self, handPosition):
+		if self.floatingIcon is not None:
+			super().fixated(handPosition)
 		
 	def eyesMoved(self, pos):
 		if self.floatingIcon is None:
@@ -335,14 +339,20 @@ class LeapMovesMeScheme(LeapOnlyScheme):
 			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 
 	def grabbed(self, hand):
+		self.gestureTracker.clearLastFixation()
+		self.gazeTracker.clearLastFixation()
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		pyMouse.press(int(gaze[0]), int(gaze[1]))
+		
+	def released(self, hand):
+		super().released(hand)
+		self.gazeTracker.clearLastFixation()
 		
 	def handMoved(self, delta):
 		if self.floatingIcon is not None:
 			super().handMoved(delta)
 		
-class GazeAndKeyboardScheme(InputScheme):
+class GazeAndButtonScheme(InputScheme):
 	def __init__(self, window=None):
 		import GazeDevice
 
@@ -382,7 +392,7 @@ class GazeAndKeyboardScheme(InputScheme):
 	def stop(self):
 		self.gazeTracker.stop()
 
-class GazeOnlyScheme(InputScheme):
+class GazeScheme(InputScheme):
 	def __init__(self, window=None):
 		import GazeDevice
 
@@ -457,12 +467,12 @@ class SchemeSelector(QtGui.QWidget):
 		self.layout().addWidget(self.participantIDBox, 1, 0, 1, 2)
 
 		components = [
-			{'scheme':'MouseOnlyScheme', 'label': 'Mouse only'},
-			{'scheme':'LeapOnlyScheme', 'label': 'Gesture only'},
-			{'scheme':'GazeOnlyScheme', 'label': 'Gaze only'},
-			{'scheme':'GazeAndKeyboardScheme', 'label': 'Gaze + button'},
-			{'scheme':'LookGrabLookDropScheme', 'label': 'Gaze + gesture'},
-			{'scheme':'LeapMovesMeScheme', 'label': 'Gaze + motion'},
+			{'scheme':'MouseScheme', 'label': 'Mouse only'},
+			{'scheme':'GestureScheme', 'label': 'Gesture only'},
+			{'scheme':'GazeScheme', 'label': 'Gaze only'},
+			{'scheme':'GazeAndButtonScheme', 'label': 'Gaze + button'},
+			{'scheme':'GazeAndGestureScheme', 'label': 'Gaze + gesture'},
+			{'scheme':'GazeAndMotionScheme', 'label': 'Gaze + motion'},
 		]
 		
 		colors = {

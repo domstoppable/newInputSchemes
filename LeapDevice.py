@@ -200,6 +200,7 @@ class LeapDevice(QtCore.QObject):
 	def clearLastFixation(self):
 		self.leftHand.clearLastFixation()
 		self.rightHand.clearLastFixation()
+		self.fixationInvalidated.emit(None)
 
 	def getAttentivePosition(self, clear=False):
 		left = self.leftHand.getAttentivePosition(clear)
