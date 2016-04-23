@@ -1,4 +1,7 @@
 *.pyc
 *.pyd
 logs/
+Output/
+build/
+dist/
 Thumbs.db
