@@ -18,6 +18,40 @@ scheme = None
 startTime = None
 correct = 0
 incorrect = 0
+def imageMoved(imageName, destination):
+	global window, gazeCalibrationWindow, scheme, startTime, correct, incorrect
+	logging.info('Moved %s to %s', imageName, destination)
+	
+	if startTime is None:
+		startTime = time.time()
+	animalType = imageName.split('_')[0]
+	if animalType.lower() in destination.lower():
+		correct += 1
+	else:
+		incorrect += 1
+		
+	if window.getRemainingImageCount() < 1:
+		score = 1
+		
+		window.hide()
+		QtCore.QTimer.singleShot(0, doScore)
+		
+def doScore():
+	global window
+	try:
+		score = 8000.0 * pow(correct / (correct + incorrect), 3) / pow(time.time() - startTime, 0.5)
+	except Exception as exc:
+		logging.error('Error calculating score')
+		logging.error('%s' % exc)
+		score = -1
+		
+	logging.info('Score: %d' % score)
+	closeDown()
+	window.hide()
+	box = QtGui.QMessageBox(QtGui.QMessageBox.Information, 'Done!', 'Score: %d' % score, QtGui.QMessageBox.Ok, window)
+	box.finished.connect(window.close)
+	box.show()
+
 def main(selectedScheme, app=None):
 	global window, gazeCalibrationWindow, scheme, startTime, correct, incorrect
 	
@@ -30,33 +64,6 @@ def main(selectedScheme, app=None):
 	window = DragDropTaskWindow()
 	window.closed.connect(closeDown)
 	
-	def imageMoved(imageName, destination):
-		global window, gazeCalibrationWindow, scheme, startTime, correct, incorrect
-		logging.info('Moved %s to %s', imageName, destination)
-		
-		if startTime is None:
-			startTime = time.time()
-		animalType = imageName.split('_')[0]
-		if animalType.lower() in destination.lower():
-			correct += 1
-		else:
-			incorrect += 1
-			
-		if window.getRemainingImageCount() < 1:
-			try:
-				score = 8000.0 * pow(correct / (correct + incorrect), 3) / pow(time.time() - startTime, 0.5)
-			except Exception as exc:
-				logging.error('Error calculating score')
-				logging.error('%s' % exc)
-				score = -1
-				
-			logging.info('Score: %d' % score)
-			closeDown()
-			window.hide()
-			box = QtGui.QMessageBox(QtGui.QMessageBox.Information, 'Done!', 'Score: %d' % score, QtGui.QMessageBox.Ok, window)
-			box.finished.connect(window.close)
-			box.show()
-		
 	scheme.imageMoved.connect(imageMoved)
 
 	window.optionsWindow = DeviceOptionsWindow()
