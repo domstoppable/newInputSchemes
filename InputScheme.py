@@ -5,7 +5,7 @@ from PySide import QtGui, QtCore
 
 from DragDropUI import IconLayout, FolderIcon
 from pymouse import PyMouse
-import sound
+import assets
 
 pyMouse = PyMouse()
 
@@ -65,7 +65,7 @@ class InputScheme(QtCore.QObject):
 			return True
 		else:
 			logging.info('Grab failure')
-			sound.play('bummer.wav')
+			assets.play('bummer')
 			return False
 
 	def doRelease(self, x, y):
@@ -96,7 +96,7 @@ class InputScheme(QtCore.QObject):
 		image.setSelected()
 		self.grabbedIcons.append(image)
 		
-		sound.play("select.wav")
+		assets.play('select')
 		
 	def moveImages(self, folder):
 		if len(self.grabbedIcons) == 0:
@@ -114,7 +114,7 @@ class InputScheme(QtCore.QObject):
 		self.grabbedIcons = []
 		
 		folder.blink()
-		sound.play("drop.wav")
+		assets.play('drop')
 
 	def releaseImages(self):
 		if len(self.grabbedIcons) == 0:
@@ -124,7 +124,7 @@ class InputScheme(QtCore.QObject):
 			icon.setUnselected()
 
 		self.grabbedIcons = []
-		sound.play("release.wav")
+		assets.play('release')
 		
 	def isGrabbing(self):
 		return len(self.grabbedIcons) > 0
@@ -451,7 +451,7 @@ class SchemeSelector(QtGui.QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		self.setWindowTitle('Project 2 Launcher')
+		self.setWindowTitle('Input Scheme Selector')
 		font = self.font()
 		font.setPointSize(18)
 		self.setFont(font)

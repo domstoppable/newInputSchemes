@@ -3,6 +3,8 @@ import os, random
 from PySide import QtGui, QtCore
 from FlowLayout import *
 
+import assets
+
 class DragDropTaskWindow(QtGui.QWidget):
 	closed = QtCore.Signal()
 	mousePressed = QtCore.Signal(object, object)
@@ -172,11 +174,10 @@ class ImagesWindow(QtGui.QScrollArea):
 		layout = FlowLayout(spacing=0)
 		container.setLayout(layout)
 	
-		imagePath = './assets/animals/'
-		images = [ f for f in os.listdir(imagePath) if os.path.isfile(os.path.join(imagePath,f)) ]
+		images = assets.getFileList('animals')
 		random.shuffle(images)
 		for imageName in images:
-			image = QtGui.QImage(os.path.join(imagePath, imageName)).scaled(200, 175)
+			image = assets.getQImage('animals/%s' % imageName).scaled(200, 175)
 
 			w = IconLayout(image, imageName)
 			layout.addWidget(w)
@@ -203,7 +204,7 @@ class FoldersWindow(QtGui.QScrollArea):
 		container = QtGui.QWidget()
 		layout = FlowLayout(spacing=0)
 		
-		image = QtGui.QImage('assets/folder.png').scaled(200, 200)
+		image = assets.getQImage('folder.png').scaled(200, 200)
 		folderNames = [
 			'.1,1',	'.1,2',	'.1,3',	'Cats',
 			'.2,1', 'Cows', '.2,3',	'.2,4',
@@ -249,8 +250,8 @@ class InputFeedbackWindow(QtGui.QWidget):
 
 	def showEye(self):
 		self.eyeImages = {
-			True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-good.png')),
-			False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/eye-bad.png'))
+			True: assets.getQPixmap('eye-good.png'),
+			False: assets.getQPixmap('eye-bad.png')
 		}
 		self.eyeWidget = QtGui.QLabel()
 		self.eyeWidget.setAlignment(QtCore.Qt.AlignCenter)
@@ -261,12 +262,12 @@ class InputFeedbackWindow(QtGui.QWidget):
 	def showHand(self):
 		self.handImages = {
 			True: {
-				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-good.png')),
-				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-good.png')),
+				True: assets.getQPixmap('hand-open-good.png'),
+				False: assets.getQPixmap('hand-closed-good.png'),
 			},
 			False: {
-				True: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-open-bad.png')),
-				False: QtGui.QPixmap.fromImage(QtGui.QImage('./assets/hand-closed-bad.png')),
+				True: assets.getQPixmap('hand-open-bad.png'),
+				False: assets.getQPixmap('hand-closed-bad.png'),
 			},
 		}
 		self.handWidget = QtGui.QLabel()
