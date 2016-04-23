@@ -171,13 +171,14 @@ class GazeAndGestureScheme(InputScheme):
 	def grabbed(self, hand):
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		self.doGrab(gaze[0], gaze[1])
+		pyMouse.move(int(gaze[0]), int(gaze[1]))
+		self.gazeTracker.clearLastFixation()
 		
 	def released(self, hand):
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		self.doRelease(gaze[0], gaze[1])
-
-	def setScaling(self, value):
-		pass
+		pyMouse.move(int(gaze[0]), int(gaze[1]))
+		self.gazeTracker.clearLastFixation()
 
 	def stop(self):
 		self.gestureTracker.stop()
@@ -296,9 +297,6 @@ class GestureScheme(MouseScheme):
 			int(location[1] - round(delta[1]))
 		)
 			
-	def setScaling(self, value): # @TODO: remove this
-		self.scale = value       # @TODO: remove this
-
 	def stop(self):
 		self.gestureTracker.stop()
 
@@ -328,7 +326,6 @@ class GazeAndMotionScheme(GestureScheme):
 	def eyesMoved(self, pos):
 		if self.floatingIcon is None:
 			self.attentivePoint = pos
-			#self.changePreselectedIcon(pos, True)
 			self.changePreselectedIcon(pos)
 		
 	def setWindow(self, window):
