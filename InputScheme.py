@@ -5,7 +5,8 @@ from PySide import QtGui, QtCore
 
 from DragDropUI import IconLayout, FolderIcon
 from pymouse import PyMouse
-import assets
+
+import settings, assets
 
 pyMouse = PyMouse()
 
@@ -348,6 +349,8 @@ class GazeAndMotionScheme(GestureScheme):
 		self.gazeTracker.clearLastFixation()
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		pyMouse.press(int(gaze[0]), int(gaze[1]))
+		if settings.checkBool(settings.systemValue('syncGestureAndGaze')):
+			self.virtualPos = gaze
 		
 	def released(self, hand):
 		super().released(hand)

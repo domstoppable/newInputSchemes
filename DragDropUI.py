@@ -3,7 +3,7 @@ import os, random
 from PySide import QtGui, QtCore
 from FlowLayout import *
 
-import assets
+import settings, assets
 
 class DragDropTaskWindow(QtGui.QWidget):
 	closed = QtCore.Signal()
@@ -337,6 +337,20 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.setLayout(layout)
 		
 		self.tableElementCount = 0
+		self.addSystemControls()
+		
+	def addSystemControls(self):
+		def syncGestureAndGazeBoxChanged(state):
+			settings.setSystemValue('syncGestureAndGaze', state == QtCore.Qt.Checked)
+			
+		syncGestureAndGazeBox = QtGui.QCheckBox()
+		syncGestureAndGazeBox.setChecked(settings.checkBool(settings.systemValue('syncGestureAndGaze')))
+		syncGestureAndGazeBox.stateChanged.connect(syncGestureAndGazeBoxChanged)
+		
+		self.addElements([
+			['<b>-- System Options --</b>'],
+			['Sync gesture with gaze', syncGestureAndGazeBox],
+		])
 		
 	def addGestureControls(self, scheme):
 		self.gestureTracker = scheme.gestureTracker
