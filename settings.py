@@ -5,14 +5,15 @@ from PySide import QtCore
 _settings = None
 
 _gestureDefaults = {
-	'scaling': 10.0,
+	'prescale': 3.0,
+	'acceleration': 1.45,
 	'grabThreshold': 96.0,
 	'releaseThreshold': 94.0,
+	'dwellDuration': 0.5,
+	'dwellRange': 2,
+	'attentionPeriod': .7,
 	'minGrab': 30,
 	'maxGrab': 450,
-	'dwellDuration': 0.1,
-	'dwellRange': 2,
-	'attentionPeriod': 1.0,
 }
 
 _gazeDefaults = {

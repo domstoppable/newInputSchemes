@@ -9,6 +9,9 @@ import assets
 
 pyMouse = PyMouse()
 
+def clamp(number, minimum, maximum):
+	return max(min(number, maximum), minimum)
+
 class InputScheme(QtCore.QObject):
 	imageMoved = QtCore.Signal(str, str)
 	ready = QtCore.Signal()
@@ -234,6 +237,7 @@ class GestureScheme(MouseScheme):
 		self.gestureTracker = LeapDevice()
 		self.attentivePoint = None
 		super().__init__(window)
+		self.virtualPos = None
 		
 	def changePreselectedIcon(self, pos):
 		if self.attentivePoint is None or pos == self.attentivePoint:
@@ -246,6 +250,12 @@ class GestureScheme(MouseScheme):
 		self.gestureTracker.moved.connect(self.handMoved)
 		self.gestureTracker.fixated.connect(self.fixated)
 		self.gestureTracker.fixationInvalidated.connect(self.fixationInvalidated)
+
+		mousePos = pyMouse.position()
+		self.virtualPos = [mousePos[0], mousePos[1]]
+
+		screenSize = QtGui.QDesktopWidget().screenGeometry()
+		self.screenSize = [screenSize.width(), screenSize.height()]
 		logging.debug('Leap connected')
 		
 	def setWindow(self, window):
@@ -267,35 +277,33 @@ class GestureScheme(MouseScheme):
 
 	def grabbed(self, hand):
 		if self.attentivePoint is None:
-			location = pyMouse.position()
+			location = self.virtualPos
 		else:
 			location = self.attentivePoint
 		
 		previousLocation = pyMouse.position()
-		pyMouse.press(location[0], location[1])
+		pyMouse.press(round(location[0]), round(location[1]))
 		pyMouse.move(previousLocation[0], previousLocation[1])
 		self.gestureTracker.clearLastFixation()
 		self.attentivePoint = None
 
 	def released(self, hand):
 		if self.attentivePoint is None:
-			location = pyMouse.position()
+			location = self.virtualPos
 		else:
 			location = self.attentivePoint
 
 		previousLocation = pyMouse.position()
-		pyMouse.release(int(location[0]), int(location[1]))
+		pyMouse.release(round(location[0]), round(location[1]))
 		self.release(position=location)
 		pyMouse.move(previousLocation[0], previousLocation[1])
 		self.gestureTracker.clearLastFixation()
 		self.attentivePoint = None
-		
+				
 	def handMoved(self, delta):
-		location = pyMouse.position()
-		pyMouse.move(
-			int(location[0] + round(delta[0])),
-			int(location[1] - round(delta[1]))
-		)
+		self.virtualPos[0] = clamp(self.virtualPos[0] + delta[0], 0, self.screenSize[0])
+		self.virtualPos[1] = clamp(self.virtualPos[1] - delta[1], 0, self.screenSize[1])
+		pyMouse.move(round(self.virtualPos[0]), round(self.virtualPos[1]))
 			
 	def stop(self):
 		self.gestureTracker.stop()

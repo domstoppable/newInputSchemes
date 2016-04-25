@@ -1,4 +1,4 @@
-import logging, settings, time
+import logging, settings, time, math
 from PySide import QtGui, QtCore
 
 import LeapPython
@@ -28,7 +28,8 @@ class LeapDevice(QtCore.QObject):
 		
 		self.calibrating = False
 		
-		self.scaling = float(settings.gestureValue('scaling'))
+		self.prescale = float(settings.gestureValue('prescale'))
+		self.acceleration = float(settings.gestureValue('acceleration'))
 		self.minGrab = float(settings.gestureValue('minGrab'))
 		self.maxGrab = float(settings.gestureValue('maxGrab'))
 		
@@ -108,7 +109,10 @@ class LeapDevice(QtCore.QObject):
 							
 					delta = metaHand.updatePosition()
 					if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
-						delta = [p * self.scaling for p in delta]
+						for index, param in enumerate(delta):
+							delta[index] = abs(pow(param * self.prescale, self.acceleration))
+							if param < 0:
+								delta[index] *= -1
 						self.moved.emit(delta)
 					
 	def toggleCalibration(self):
@@ -152,12 +156,19 @@ class LeapDevice(QtCore.QObject):
 	def getUnpinchThreshold(self):
 		return self.unpinchThreshold
 		
-	def setScaling(self, scaling):
-		self.scaling = scaling
-		settings.setGestureValue('scaling', scaling)
+	def setPrescale(self, prescale):
+		self.prescale = prescale
+		settings.setGestureValue('prescale', prescale)
 		
-	def getScaling(self):
-		return self.scaling
+	def getPrescale(self):
+		return self.prescale
+		
+	def setAcceleration(self, acceleration):
+		self.acceleration = acceleration
+		settings.setGestureValue('acceleration', acceleration)
+		
+	def getAcceleration(self):
+		return self.acceleration
 		
 	def getDwellDuration(self):
 		return self.leftHand.getDwellDuration()

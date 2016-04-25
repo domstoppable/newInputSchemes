@@ -340,12 +340,18 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		
 	def addGestureControls(self, scheme):
 		self.gestureTracker = scheme.gestureTracker
-		scalingBox = QtGui.QDoubleSpinBox()
-		scalingBox.setValue(scheme.gestureTracker.getScaling())
-		scalingBox.setRange(-50, 50)
-		scalingBox.setSingleStep(0.5)
-		scalingBox.setSuffix("x")
-		scalingBox.valueChanged.connect(scheme.gestureTracker.setScaling)
+
+		prescaleBox = QtGui.QDoubleSpinBox()
+		prescaleBox.setValue(scheme.gestureTracker.getPrescale())
+		prescaleBox.setRange(1, 4)
+		prescaleBox.setSingleStep(0.25)
+		prescaleBox.valueChanged.connect(scheme.gestureTracker.setPrescale)
+		
+		accelerationBox = QtGui.QDoubleSpinBox()
+		accelerationBox.setValue(scheme.gestureTracker.getAcceleration())
+		accelerationBox.setRange(1, 4)
+		accelerationBox.setSingleStep(0.25)
+		accelerationBox.valueChanged.connect(scheme.gestureTracker.setAcceleration)
 		
 		grabThresholdBox = QtGui.QDoubleSpinBox()
 		grabThresholdBox.setValue(scheme.gestureTracker.grabThreshold)
@@ -412,7 +418,8 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.addElements([
 			['<b>-- Gesture Options --</b>'],
 			[self.calibrateButton, self.currentGrabBox],
-			['Movement scaling', scalingBox],
+			['Movement prescale', prescaleBox],
+			['Movement acceleration', accelerationBox],
 			['Grab threshold', grabThresholdBox],
 			['Release threshold', releaseThresholdBox],
 			['Dwell duration', dwellDurationBox],
