@@ -7,7 +7,7 @@ from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
 
 from selectionDetector import DwellSelect, Point
 
-class LeapDevice(QtCore.QObject):
+class GestureDevice(QtCore.QObject):
 	handAppeared = QtCore.Signal(object)
 	handDisappeared = QtCore.Signal(object)	# @TODO make this work
 	noHands = QtCore.Signal()

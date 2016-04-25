@@ -135,12 +135,12 @@ class InputScheme(QtCore.QObject):
 
 class GazeAndGestureScheme(InputScheme):
 	def __init__(self, window=None):
-		from LeapDevice import LeapDevice
+		from GestureDevice import GestureDevice
 		import GazeDevice
 
 		super().__init__(window)
 		
-		self.gestureTracker = LeapDevice()
+		self.gestureTracker = GestureDevice()
 		try:
 			self.gazeTracker = GazeDevice.getGazeDevice()
 			self.gazeTracker.ready.connect(self.ready.emit)
@@ -233,9 +233,9 @@ class MouseScheme(InputScheme):
 
 class GestureScheme(MouseScheme):
 	def __init__(self, window=None):
-		from LeapDevice import LeapDevice
+		from GestureDevice import GestureDevice
 
-		self.gestureTracker = LeapDevice()
+		self.gestureTracker = GestureDevice()
 		self.attentivePoint = None
 		super().__init__(window)
 		self.virtualPos = None
