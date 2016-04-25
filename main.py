@@ -58,7 +58,7 @@ def schemeSelected(schemeName, participantID, practiceOnly):
 		filename=logFile,
 		level=logging.DEBUG,
 	)
-	settings.load(participantID)
+	settings.loadPersonalSettings(participantID)
 
 	try:
 		scheme = getattr(InputScheme, schemeName)()

@@ -2,9 +2,11 @@ import logging
 
 from PySide import QtCore
 
-_settings = None
+_systemSettings = QtCore.QSettings('Green Light Go', 'Alternative input schemes')
+_personalSettings = None
 
 _systemDefaults = {
+	'participantID': 'test',
 	'syncGestureAndGaze': True,
 }
 
@@ -26,22 +28,22 @@ _gazeDefaults = {
 	'attentionPeriod': 1,
 }
 
-def load(userID):
-	global settings
-	settings = QtCore.QSettings('logs/%s/preferences.ini' % userID, QtCore.QSettings.IniFormat)
+def loadPersonalSettings(userID):
+	global _personalSettings
+	_personalSettings = QtCore.QSettings('logs/%s/preferences.ini' % userID, QtCore.QSettings.IniFormat)
 	logging.debug('Loaded settings')
 	
 def systemValue(key):
-	return settings.value('System/%s' % key, _systemDefaults[key])
-	
-def gestureValue(key):
-	return settings.value('GestureTracker/%s' % key, _gestureDefaults[key])
-	
-def gazeValue(key):
-	return settings.value('GazeTracker/%s' % key, _gazeDefaults[key])
+	return _systemSettings.value('System/%s' % key, _systemDefaults[key])
 	
 def setSystemValue(key, value):
-	_setValue('System', key, value)
+	_systemSettings.setValue('System/%s' % key, value)
+	
+def gestureValue(key):
+	return _personalSettings.value('GestureTracker/%s' % key, _gestureDefaults[key])
+	
+def gazeValue(key):
+	return _personalSettings.value('GazeTracker/%s' % key, _gazeDefaults[key])
 	
 def setGestureValue(key, value):
 	_setValue('GestureTracker', key, value)
@@ -50,9 +52,9 @@ def setGazeValue(key, value):
 	_setValue('GazeTracker', key, value)
 
 def _setValue(section, key, value):
-	settings.beginGroup(section)
-	settings.setValue(key, value)
-	settings.endGroup()
+	_personalSettings.beginGroup(section)
+	_personalSettings.setValue(key, value)
+	_personalSettings.endGroup()
 	
 def checkBool(value):
 	return value in [ True, 'True', 'true', 't', 1, '1' ]

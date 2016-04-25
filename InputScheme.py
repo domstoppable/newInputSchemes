@@ -471,6 +471,7 @@ class SchemeSelector(QtGui.QWidget):
 		
 		self.participantIDBox = QtGui.QLineEdit()
 		self.participantIDBox.setAlignment(QtCore.Qt.AlignCenter)
+		self.participantIDBox.setText(settings.systemValue('participantID'))
 		self.layout().addWidget(QtGui.QLabel('<center>Participant ID</center>'), 0, 0, 1, 2)
 		self.layout().addWidget(self.participantIDBox, 1, 0, 1, 2)
 
@@ -515,6 +516,7 @@ class SchemeSelector(QtGui.QWidget):
 			QtGui.QMessageBox.critical(self, 'Error', '<font size="6">Please enter a participant ID</font>')
 			self.participantIDBox.setFocus()
 		else:
+			settings.setSystemValue('participantID', participantID)
 			while self.layout().count() > 0:
 				item = self.layout().takeAt(0)
 				widget = item.widget()
