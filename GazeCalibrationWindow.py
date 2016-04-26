@@ -200,10 +200,11 @@ class CalibrationWindow(QtGui.QWidget):
 				else:
 					self.showCalibratedLabels(calibration)
 					self.showScore()
+
 	def showScore(self):
 		calibration = self.gazeTracker.getCalibration()
 		if not calibration.result or calibration.points is None:
-			QtGui.QMessageBox.critical(self, 'Calibration failed :(')
+			text = 'Calibration failed :('
 		else:
 			worstAccuracy = None
 			worstMeanErr = None
@@ -221,7 +222,8 @@ class CalibrationWindow(QtGui.QWidget):
 			text = text + 'Worst mean error: %0.2d\n'
 			text = text + 'Worst std dev: %0.2d'
 			text = text % (calibration.deg, worstAccuracy, worstMeanErr, worstStdDev)
-			QtGui.QMessageBox.information(self, 'Results', text)
+			
+		QtGui.QMessageBox.information(self, 'Results', text)
 					
 	def showCalibratedLabels(self, calibration=None):
 		self.gazeTimer.start(1000/30)

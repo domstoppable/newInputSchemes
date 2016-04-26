@@ -65,6 +65,8 @@ class EyeTribe():
 	"""
 
 	etm_get_init = '{ "category": "tracker", "request" : "get", "values": [ "iscalibrated", "heartbeatinterval", "calibresult" ] }'
+	
+	etm_get_last_calibration = 	'{ "category": "tracker", "request" : "get", "values": [ "calibresult" ] }'
 
 	etm_get_iscalibrating = '{ "category": "tracker", "request" : "get", "values": [ "iscalibrating" ] }'
 
@@ -607,56 +609,49 @@ class EyeTribe():
 
 		The result can be retrieved by latest_calibration_result after the calibration has completed.
 		"""
-
 		self._tell_tracker(EyeTribe.etm_calib % pointcount)
 		
 	def is_calibrating(self):
 		return self._tell_tracker(EyeTribe.etm_get_iscalibrating)['values']['iscalibrating']
 
 	def calibration_point_start(self, x, y):
-			self._tell_tracker(EyeTribe.etm_cpstart % (x, y))
+		self._tell_tracker(EyeTribe.etm_cpstart % (x, y))
 
 	def calibration_point_end(self):
-			p = self._tell_tracker(EyeTribe.etm_cpend)
+		p = self._tell_tracker(EyeTribe.etm_cpend)
 
 	def process_calibration(self, p):
-			if 'values' in p:
-				self._calibres.result = p['values']['calibresult']['result']
-				self._calibres.deg = p['values']['calibresult']['deg']
-				self._calibres.degl = p['values']['calibresult']['degl']
-				self._calibres.degr = p['values']['calibresult']['degr']
+		if 'values' in p:
+			self._calibres.result = p['values']['calibresult']['result']
+			self._calibres.deg = p['values']['calibresult']['deg']
+			self._calibres.degl = p['values']['calibresult']['degl']
+			self._calibres.degr = p['values']['calibresult']['degr']
 
-				cps = p['values']['calibresult']['calibpoints']
-				self._calibres.points = [ EyeTribe.CalibrationPoint() for i in range(len(cps)) ]
-				for i in range(len(cps)):
-					self._calibres.points[i].state = cps[i]['state']
-					self._calibres.points[i].cp = EyeTribe.Coord(cps[i]['cp']['x'], cps[i]['cp']['y'])
-					self._calibres.points[i].mecp = EyeTribe.Coord(cps[i]['cp']['x'], cps[i]['cp']['y'])
-					self._calibres.points[i].ad = cps[i]['acd']['ad']
-					self._calibres.points[i].adl = cps[i]['acd']['adl']
-					self._calibres.points[i].adr = cps[i]['acd']['adr']
-					self._calibres.points[i].mep = cps[i]['mepix']['mep']
-					self._calibres.points[i].mepl = cps[i]['mepix']['mepl']
-					self._calibres.points[i].mepr = cps[i]['mepix']['mepr']
-					self._calibres.points[i].asd = cps[i]['asdp']['asd']
-					self._calibres.points[i].asdl = cps[i]['asdp']['asdl']
-					self._calibres.points[i].asdr = cps[i]['asdp']['asdr']
-
-				'''
-				if self._calibres.result:
-					print("NOTICE: Tracker calibrated succesfully, average error is %0.1f deg (L: %0.1f, R: %0.1f)" % 
-							(self._calibres.deg, self._calibres.degl, self._calibres.degr))
-				else:
-					print("WARNING: Tracker failed to calibrate")
-				'''
+			cps = p['values']['calibresult']['calibpoints']
+			self._calibres.points = [ EyeTribe.CalibrationPoint() for i in range(len(cps)) ]
+			for i in range(len(cps)):
+				self._calibres.points[i].state = cps[i]['state']
+				self._calibres.points[i].cp = EyeTribe.Coord(cps[i]['cp']['x'], cps[i]['cp']['y'])
+				self._calibres.points[i].mecp = EyeTribe.Coord(cps[i]['cp']['x'], cps[i]['cp']['y'])
+				self._calibres.points[i].ad = cps[i]['acd']['ad']
+				self._calibres.points[i].adl = cps[i]['acd']['adl']
+				self._calibres.points[i].adr = cps[i]['acd']['adr']
+				self._calibres.points[i].mep = cps[i]['mepix']['mep']
+				self._calibres.points[i].mepl = cps[i]['mepix']['mepl']
+				self._calibres.points[i].mepr = cps[i]['mepix']['mepr']
+				self._calibres.points[i].asd = cps[i]['asdp']['asd']
+				self._calibres.points[i].asdl = cps[i]['asdp']['asdl']
+				self._calibres.points[i].asdr = cps[i]['asdp']['asdr']
 
 	def calibration_abort(self):
-			self._tell_tracker(EyeTribe.etm_calib_abort)
+		self._tell_tracker(EyeTribe.etm_calib_abort)
 
 	def calibration_clear(self):
-			self._tell_tracker(EyeTribe.etm_calib_clear)
+		self._tell_tracker(EyeTribe.etm_calib_clear)
 
 	def latest_calibration_result(self):
+		self.process_calibration(self._tell_tracker(EyeTribe.etm_get_last_calibration))
+		
 		return self._calibres
 
 if __name__ == "__main__":
