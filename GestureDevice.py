@@ -108,11 +108,13 @@ class GestureDevice(QtCore.QObject):
 							self.unpinched.emit(hand)
 							
 					delta = metaHand.updatePosition()
-					if delta[0] != 0 or delta[1] != 0 or delta[2] != 0:
+					if delta[0]!=0 or delta[1]!=0 or delta[2]!=0: #if any of these are nonzero
 						for index, param in enumerate(delta):
-							delta[index] = abs(pow(param * self.prescale, self.acceleration))
+							# absolute value first, otherwise you may end up withi a complex number
+							delta[index] = abs(pow(abs(param) * self.prescale, self.acceleration))
 							if param < 0:
 								delta[index] *= -1
+
 						self.moved.emit(delta)
 					
 	def toggleCalibration(self):
@@ -231,6 +233,8 @@ class HandyHand(QtCore.QObject):
 		self.hand = None
 		self.grabbing = False
 		self.pinching = False
+		self.rawPositionHistory = [[], [], []]
+		self.smoothRange = 4
 		self.position = [-1, -1, -1]
 		self.lastFixation = None
 		self.staleTimerStart = None
@@ -249,24 +253,22 @@ class HandyHand(QtCore.QObject):
 			self.hand = hand
 		
 	def updatePosition(self):
-		newPos = self.hand.stabilized_palm_position
-		delta = [
-			newPos.x - self.position[0],
-			newPos.y - self.position[1],
-			newPos.z - self.position[2],
-		]
-		
-		self.position = [
-			self.hand.stabilized_palm_position.x,
-			self.hand.stabilized_palm_position.y,
-			self.hand.stabilized_palm_position.z,
-		]
+		self.rawPositionHistory[0].insert(0, self.hand.palm_position.x)
+		self.rawPositionHistory[1].insert(0, self.hand.palm_position.y)
+		self.rawPositionHistory[2].insert(0, self.hand.palm_position.z)
+		newPos = []
+		delta = []
+		for i,history in enumerate(self.rawPositionHistory):
+			self.rawPositionHistory[i] = history[0:self.smoothRange]
+			newPos.append(sum(self.rawPositionHistory[i]) / len(self.rawPositionHistory[i]))
+			delta.append(newPos[i] - self.position[i])
+			self.position[i] = newPos[i]
 		
 		wasInsideDwell = self.detector.inDwell
 		self.detector.addPoint(Point(
-			self.hand.stabilized_palm_position.x,
-			self.hand.stabilized_palm_position.y,
-			self.hand.stabilized_palm_position.z,
+			newPos[0],
+			newPos[1],
+			newPos[2],
 			time.time(),
 			self.hand
 		))
