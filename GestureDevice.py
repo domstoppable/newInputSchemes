@@ -20,6 +20,7 @@ class GestureDevice(QtCore.QObject):
 	pinchValued = QtCore.Signal(object)
 	fixated = QtCore.Signal(object)
 	fixationInvalidated = QtCore.Signal(object)
+	reachingBounds = QtCore.Signal(object, object)
 	
 	def __init__(self):
 		super().__init__()
@@ -54,6 +55,13 @@ class GestureDevice(QtCore.QObject):
 		self.timer.start(1.0/30.0)
 		
 		self.sawHandLastTime = False
+		
+		self.boundsReached = {
+			'left': False,
+			'right': False,
+			'top': False,
+			'bottom': False,
+		}
     
 	def poll(self):
 		frame = self.controller.frame()
@@ -65,7 +73,26 @@ class GestureDevice(QtCore.QObject):
 				self.noHands.emit()
 			self.sawHandLastTime = False
 		else:
+			boundsCheck = {
+				'left': False,
+				'right': False,
+				'top': False,
+				'bottom': False,
+			}
 			for hand in hands:
+				# check for edges
+				box = frame.interaction_box
+				pos = box.normalize_point(hand.palm_position, False)
+				threshold = 1
+				if pos.x > threshold:
+					boundsCheck['right'] = True
+				elif pos.x < 1-threshold:
+					boundsCheck['left'] = True
+				if pos.z > threshold:
+					boundsCheck['bottom'] = True
+				elif pos.z < 1-threshold:
+					boundsCheck['top'] = True
+				
 				if hand.is_left:
 					if not self.leftHand.isHand(hand) and not self.sawHandLastTime:
 						self.handAppeared.emit(hand)
@@ -117,6 +144,10 @@ class GestureDevice(QtCore.QObject):
 
 						self.moved.emit(delta)
 					
+			for direction,warn in boundsCheck.items():
+				if warn != self.boundsReached[direction]:
+					self.boundsReached[direction] = warn
+					self.reachingBounds.emit(direction, warn)
 	def toggleCalibration(self):
 		self.setCalibrating(not self.calibrating)
 		

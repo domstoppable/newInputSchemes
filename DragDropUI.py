@@ -241,6 +241,8 @@ class InputFeedbackWindow(QtGui.QWidget):
 		self.handGood = False
 		self.handOpen = True
 		
+		self.gestureBoundsWindows = {}
+		
 	def resizeEvent(self, e):
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()
 		self.move(
@@ -312,6 +314,49 @@ class InputFeedbackWindow(QtGui.QWidget):
 		logging.debug("Eyes bad")
 		self.eyeGood = False
 		self._updateIcons()
+		
+	def setGestureBoundNotice(self, direction, state):
+		if not direction in self.gestureBoundsWindows:
+			self.gestureBoundsWindows[direction] = BoundsWarningWindow(direction)
+		if state:
+			self.gestureBoundsWindows[direction].show()
+		else:
+			self.gestureBoundsWindows[direction].hide()
+			
+	def closeEvent(self, e):
+		super().closeEvent(e)
+		for direction,window in self.gestureBoundsWindows.items():
+			window.close()
+
+class BoundsWarningWindow(QtGui.QWidget):
+	def __init__(self, direction):
+		super().__init__()
+		self.direction = direction
+		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
+		self.setWindowOpacity(.25)
+		self.setAttribute(QtCore.Qt.WA_ShowWithoutActivating)
+		self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+
+		self.layout = QtGui.QVBoxLayout()
+		self.setLayout(self.layout)
+		
+		p = self.palette()
+		p.setColor(self.backgroundRole(), QtCore.Qt.red)
+		self.setPalette(p)
+		
+		desktopSize = QtGui.QDesktopWidget().screenGeometry()
+		size = 32
+		if direction in ['left', 'right']:
+			self.resize(size, desktopSize.height())
+		else:
+			self.resize(desktopSize.width(), size)
+		if direction in ['left', 'top']:
+			self.move(0, 0)
+		elif direction == 'right':
+			self.move(desktopSize.width()-size, 0)
+		else:
+			self.move(0, desktopSize.height()-size)
+
 
 class DeviceOptionsWindow(QtGui.QWidget):
 	def __init__(self):

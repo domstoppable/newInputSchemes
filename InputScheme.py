@@ -171,7 +171,7 @@ class GazeAndGestureScheme(InputScheme):
 			self.gestureTracker.moved.connect(window.feedbackWindow.setHandGood)
 			self.gazeTracker.eyesAppeared.connect(window.feedbackWindow.setEyeGood)
 			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
-
+			
 	def grabbed(self, hand):
 		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		self.doGrab(gaze[0], gaze[1])
@@ -251,7 +251,7 @@ class GestureScheme(MouseScheme):
 		self.gestureTracker.moved.connect(self.handMoved)
 		self.gestureTracker.fixated.connect(self.fixated)
 		self.gestureTracker.fixationInvalidated.connect(self.fixationInvalidated)
-
+		
 		mousePos = pyMouse.position()
 		self.virtualPos = [mousePos[0], mousePos[1]]
 
@@ -268,7 +268,8 @@ class GestureScheme(MouseScheme):
 			self.gestureTracker.grabbed.connect(window.feedbackWindow.setHandClosed)
 			self.gestureTracker.released.connect(window.feedbackWindow.setHandOpen)
 			self.gestureTracker.moved.connect(window.feedbackWindow.setHandGood)
-		
+			self.gestureTracker.reachingBounds.connect(window.feedbackWindow.setGestureBoundNotice)
+
 	def fixated(self, handPosition):
 		self.attentivePoint = pyMouse.position()
 		self.changePreselectedIcon(self.attentivePoint)
