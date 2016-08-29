@@ -74,11 +74,11 @@ def schemeSelected(schemeName, participantID, practiceOnly):
 			logging.debug('Loaded scheme %s for participant %s' % (schemeName, participantID))
 	except Exception as exc:
 		QtGui.QMessageBox.critical(None, 'An error has occurred :(', '%s' % exc)
-		
+		QtGui.QApplication.closeAllWindows()
 		exc_type, exc_obj, exc_tb = sys.exc_info()
 		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-		logging.error(exc_type, fname, exc_tb.tb_lineno)
-		    
+		logging.error('%s:%d - %s' % (fname, exc_tb.tb_lineno, exc))
+		raise
 		sys.exit(1)
 
 def main(args):
@@ -88,7 +88,13 @@ def main(args):
 	appWindow.show()
 	appWindow.selected.connect(schemeSelected)
 	appWindow.closed.connect(bailOut)
-	app.exec_()
+	try:
+		app.exec_()
+	except Exception as exc:
+		exc_type, exc_obj, exc_tb = sys.exc_info()
+		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+		logging.error('%s:%d - %s' % (fname, exc_tb.tb_lineno, exc))
+		sys.exit(1)
 	
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))
