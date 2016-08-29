@@ -73,6 +73,7 @@ class GestureDevice(QtCore.QObject):
 				self.noHands.emit()
 			self.sawHandLastTime = False
 		else:
+			metaHand = None
 			boundsCheck = {
 				'left': False,
 				'right': False,
@@ -83,66 +84,83 @@ class GestureDevice(QtCore.QObject):
 				# check for edges
 				box = frame.interaction_box
 				pos = box.normalize_point(hand.palm_position, False)
-				threshold = 1
-				if pos.x > threshold:
+				ignoreThreshold = 1.2
+				warnThreshold = 1.0
+				if pos.x > warnThreshold:
 					boundsCheck['right'] = True
-				elif pos.x < 1-threshold:
+				elif pos.x < 1-warnThreshold:
 					boundsCheck['left'] = True
-				if pos.z > threshold:
+				if pos.z > warnThreshold:
 					boundsCheck['bottom'] = True
-				elif pos.z < 1-threshold:
+				elif pos.z < 1-warnThreshold:
 					boundsCheck['top'] = True
 				
+				okToEmit = True
+				if pos.x > ignoreThreshold or pos.x < 1-ignoreThreshold:
+					okToEmit = False
+				if pos.z > ignoreThreshold or pos.z < 1-ignoreThreshold:
+					okToEmit = False
+
 				if hand.is_left:
-					if not self.leftHand.isHand(hand) and not self.sawHandLastTime:
-						self.handAppeared.emit(hand)
-
-					self.leftHand.setHand(hand)
-					metaHand = self.leftHand
-				else:
-					if not self.rightHand.isHand(hand) and not self.sawHandLastTime:
-						self.handAppeared.emit(hand)
-					
-					self.rightHand.setHand(hand)
-					metaHand = self.rightHand
-				self.sawHandLastTime = True
-
-				if self.calibrating:
-					if self.minGrab is None or hand.sphere_radius < self.minGrab:
-						self.minGrab = hand.sphere_radius
-					if self.maxGrab is None or hand.sphere_radius > self.maxGrab:
-						self.maxGrab = hand.sphere_radius					
-				else:
-					grabStrength = (self.maxGrab - hand.sphere_radius) / (self.maxGrab - self.minGrab)
-					self.grabValued.emit(grabStrength)
-					self.pinchValued.emit(hand.pinch_strength)
-					if not metaHand.grabbing:
-						if grabStrength >= self.grabThreshold / 100.0:
-							metaHand.grabbing = True
-							self.grabbed.emit(hand)
+					if not okToEmit:
+						self.handDisappeared.emit(hand)
+						self.leftHand.setHand(None)
 					else:
-						if grabStrength <= self.releaseThreshold / 100.0:
-							metaHand.grabbing = False
-							self.released.emit(hand)
-							
-					if not metaHand.pinching:
-						if hand.pinch_strength >= self.pinchThreshold / 100.0:
-							metaHand.pinching = True
-							self.pinched.emit(hand)
-					else:
-						if hand.pinch_strength <= self.unpinchThreshold / 100.0:
-							metaHand.pinching = False
-							self.unpinched.emit(hand)
-							
-					delta = metaHand.updatePosition()
-					if delta[0]!=0 or delta[1]!=0 or delta[2]!=0: #if any of these are nonzero
-						for index, param in enumerate(delta):
-							# absolute value first, otherwise you may end up withi a complex number
-							delta[index] = abs(pow(abs(param) * self.prescale, self.acceleration))
-							if param < 0:
-								delta[index] *= -1
+						if not self.leftHand.isHand(hand) and not self.sawHandLastTime:
+							self.handAppeared.emit(hand)
 
-						self.moved.emit(delta)
+						self.leftHand.setHand(hand)
+						metaHand = self.leftHand
+						self.sawHandLastTime = True
+				else:
+					if not okToEmit:
+						self.handDisappeared.emit(hand)
+						self.rightHand.setHand(None)
+					else:
+						if not self.rightHand.isHand(hand) and not self.sawHandLastTime:
+							self.handAppeared.emit(hand)
+						
+						self.rightHand.setHand(hand)
+						metaHand = self.rightHand
+						self.sawHandLastTime = True
+						
+				if metaHand is not None:
+					if self.calibrating:
+						if self.minGrab is None or hand.sphere_radius < self.minGrab:
+							self.minGrab = hand.sphere_radius
+						if self.maxGrab is None or hand.sphere_radius > self.maxGrab:
+							self.maxGrab = hand.sphere_radius					
+					else:
+						grabStrength = (self.maxGrab - hand.sphere_radius) / (self.maxGrab - self.minGrab)
+						self.grabValued.emit(grabStrength)
+						self.pinchValued.emit(hand.pinch_strength)
+						if not metaHand.grabbing:
+							if grabStrength >= self.grabThreshold / 100.0:
+								metaHand.grabbing = True
+								self.grabbed.emit(hand)
+						else:
+							if grabStrength <= self.releaseThreshold / 100.0:
+								metaHand.grabbing = False
+								self.released.emit(hand)
+								
+						if not metaHand.pinching:
+							if hand.pinch_strength >= self.pinchThreshold / 100.0:
+								metaHand.pinching = True
+								self.pinched.emit(hand)
+						else:
+							if hand.pinch_strength <= self.unpinchThreshold / 100.0:
+								metaHand.pinching = False
+								self.unpinched.emit(hand)
+								
+						delta = metaHand.updatePosition()
+						if delta[0]!=0 or delta[1]!=0 or delta[2]!=0: #if any of these are nonzero
+							for index, param in enumerate(delta):
+								# absolute value first, otherwise you may end up withi a complex number
+								delta[index] = abs(pow(abs(param) * self.prescale, self.acceleration))
+								if param < 0:
+									delta[index] *= -1
+
+							self.moved.emit(delta)
 					
 			for direction,warn in boundsCheck.items():
 				if warn != self.boundsReached[direction]:
@@ -277,13 +295,19 @@ class HandyHand(QtCore.QObject):
 		)
 		
 	def setHand(self, hand):
-		if self.hand is None or self.hand.id != hand.id:
+		if self.hand is None or hand is None or self.hand.id != hand.id:
 			self.hand = hand
+			for i in range(3):
+				self.rawPositionHistory[i] = []
+				
 			self.updatePosition()
 		else:
 			self.hand = hand
 		
 	def updatePosition(self):
+		if self.hand is None:
+			return
+			
 		self.rawPositionHistory[0].insert(0, self.hand.palm_position.x)
 		self.rawPositionHistory[1].insert(0, self.hand.palm_position.y)
 		self.rawPositionHistory[2].insert(0, self.hand.palm_position.z)
