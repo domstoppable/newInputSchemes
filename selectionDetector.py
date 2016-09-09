@@ -50,6 +50,10 @@ class SelectionDetector(object):
 		self.selection = None
 		
 		return selection
+		
+	def reset(self):
+		self.selection = None
+		self.points = []
 
 
 '''

@@ -156,8 +156,10 @@ class GazeAndGestureScheme(InputScheme):
 		return self.gazeTracker.isReady()
 		
 	def start(self):
+		super().start()
 		self.gestureTracker.grabbed.connect(self.grabbed)
 		self.gestureTracker.released.connect(self.released)
+		self.gazeTracker.reset()
 		
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -185,6 +187,7 @@ class GazeAndGestureScheme(InputScheme):
 		self.gazeTracker.clearLastFixation()
 
 	def stop(self):
+		super().stop()
 		self.gestureTracker.stop()
 		self.gazeTracker.stop()
 
@@ -361,6 +364,10 @@ class GazeAndMotionScheme(GestureScheme):
 		if self.floatingIcon is not None:
 			super().handMoved(delta)
 		
+	def start(self):
+		super().start()
+		self.gazeTracker.reset()
+
 class GazeAndButtonScheme(InputScheme):
 	def __init__(self, window=None):
 		import GazeDevice
@@ -398,6 +405,10 @@ class GazeAndButtonScheme(InputScheme):
 
 		return QtGui.QWidget.eventFilter(self, widget, event)
 
+	def start(self):
+		super().start()
+		self.gazeTracker.reset()
+
 	def stop(self):
 		self.gazeTracker.stop()
 
@@ -417,9 +428,11 @@ class GazeScheme(InputScheme):
 			raise(Exception('Could not connect to EyeTribe'))
 
 	def start(self):
+		super().start()
 		self.gazeTracker.fixated.connect(self.onFixate)
 		self.gazeTracker.eyesAppeared.connect(self.window.feedbackWindow.setEyeGood)
 		self.gazeTracker.eyesDisappeared.connect(self.window.feedbackWindow.setEyeBad)
+		self.gazeTracker.reset()
 
 	def setWindow(self, window):
 		super().setWindow(window)
@@ -447,6 +460,7 @@ class GazeScheme(InputScheme):
 		pyMouse.move(int(position.x), int(position.y))
 		
 	def stop(self):
+		super().stop()
 		self.gazeTracker.stop()
 
 class DraggingIcon(QtGui.QLabel):
