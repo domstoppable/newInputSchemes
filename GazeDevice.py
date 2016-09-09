@@ -52,15 +52,6 @@ class EyeTribeServer(QtCore.QObject):
 	def isRunning(self):
 		return self._running
 		
-	def killSoon(self):
-		self._running = False
-		time.sleep(8)
-		try:
-			self.stop()
-		except:
-			pass
-
-		
 	def _go(self):
 		goodText = 'The Eye Tribe Tracker stands ready!'
 		runningText = 'The Eye Tribe Tracker is already running!'
@@ -296,4 +287,4 @@ class _GazeDevice(QtCore.QObject):
 		except:
 			pass
 		if self.server.isRunning():
-			threading.Thread(target=self.server.killSoon).start()
+			self.server.stop()
