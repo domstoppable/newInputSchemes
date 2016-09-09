@@ -233,7 +233,11 @@ class _GazeDevice(QtCore.QObject):
 	def clearLastFixation(self):
 		self.lastFixation = None
 		self.staleTimeStart = None
-			
+
+	def reset(self):
+		self.clearLastFixation()
+		self.detector.reset()
+
 	def getEyePositions(self):
 		return self.eyePositions
 		
@@ -262,7 +266,6 @@ class _GazeDevice(QtCore.QObject):
 					y * ((screenHeight-margin*2) / (yPoints-1)) + margin
 				])
 		random.shuffle(self.points)
-		self.tracker.calibration_clear()
 		self.tracker.calibration_start(xPoints * yPoints)
 		
 		return self.points[-1]

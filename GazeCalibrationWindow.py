@@ -203,7 +203,7 @@ class CalibrationWindow(QtGui.QWidget):
 
 	def showScore(self):
 		calibration = self.gazeTracker.getCalibration()
-		if not calibration.result or calibration.points is None:
+		if not calibration.result or calibration.points is None or len(calibration.points) == 0:
 			text = 'Calibration failed :('
 		else:
 			worstAccuracy = None

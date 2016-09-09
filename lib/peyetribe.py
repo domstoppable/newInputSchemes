@@ -373,6 +373,8 @@ class EyeTribe():
 		"""
 		if not self._listener:
 			raise Exception("Internal error; listener is not running so we cannot get replies from the tracker!")
+		while not self._replyq.empty():
+			self._replyq.get()
 		if not self._replyq.empty():
 			raise Exception("Tracker protocol error; we have a queue reply before asking for something: %s" % (self._replyq.get()))
 
@@ -455,7 +457,7 @@ class EyeTribe():
 									# use semaphore to verify someone is waiting for a reply and give it to them (or fail!)
 									if self._reply_lock.acquire(False):
 										self._reply_lock.release()
-										raise Exception("Connection protocol error; got reply but no-one asked for it: %s" % js)
+										#raise Exception("Connection protocol error; got reply but no-one asked for it: %s" % js)
 									else:
 										self._replyq.put(f)
 
@@ -463,7 +465,7 @@ class EyeTribe():
 					if self._sock:
 						raise Exception("The connection failed with a timeout or OSError; lost tracker connection?")
 				except:
-					exc = sys.exc_info()[0]
+					exc = sys.exc_info()[1]
 					logging.error("Eyetribe encountered an unknown error :(")
 					logging.error(exc)
 
