@@ -60,7 +60,7 @@ class InputScheme(QtCore.QObject):
 
 	def doGrab(self, x, y):
 		if len(self.grabbedIcons) > 0:
-			return
+			self.releaseImages()
 			
 		widget = self.findWidgetAt(x, y)
 		if widget is not None and not isinstance(widget, FolderIcon):
