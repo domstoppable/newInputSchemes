@@ -27,13 +27,20 @@ class DragDropTaskWindow(QtGui.QWidget):
 		
 		self.loaded = True
 		
-		self.feedbackWindow.raise_()
-		self.feedbackWindow.show()
-		
 		font = self.font()
 		font.setPointSize(18)
 		self.setFont(font)
 		self.setMouseTracking(True)
+		
+	def show(self):
+		super().show()
+		self.feedbackWindow.raise_()
+		self.feedbackWindow.show()
+		
+	def showFullScreen(self):
+		super().showFullScreen()
+		self.feedbackWindow.raise_()
+		self.feedbackWindow.show()
 		
 	def hide(self):
 		self.optionsWindow.hide()
@@ -239,7 +246,6 @@ class InputFeedbackWindow(QtGui.QWidget):
 		self.handOpen = True
 		
 		self.gestureBoundsWindows = {}
-		self.resize(100, 100)
 		
 	def resizeEvent(self, e):
 		desktopSize = QtGui.QDesktopWidget().screenGeometry()
