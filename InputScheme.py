@@ -395,11 +395,12 @@ class GazeAndButtonScheme(InputScheme):
 			self.gazeTracker.eyesDisappeared.connect(window.feedbackWindow.setEyeBad)
 		
 	def eventFilter(self, widget, event):
-		gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 		if event.type() == QtCore.QEvent.KeyPress and not event.isAutoRepeat():
+			gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 			self.doGrab(gaze[0], gaze[1])
 			pyMouse.move(int(gaze[0]), int(gaze[1]))
 		elif event.type() == QtCore.QEvent.KeyRelease and not event.isAutoRepeat():
+			gaze = self.gazeTracker.getAttentiveGaze(clear=True)
 			self.doRelease(gaze[0], gaze[1])
 			pyMouse.move(int(gaze[0]), int(gaze[1]))
 
