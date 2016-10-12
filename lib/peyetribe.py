@@ -614,7 +614,13 @@ class EyeTribe():
 		self._tell_tracker(EyeTribe.etm_calib % pointcount)
 		
 	def is_calibrating(self):
-		return self._tell_tracker(EyeTribe.etm_get_iscalibrating)['values']['iscalibrating']
+		res = self._tell_tracker(EyeTribe.etm_get_iscalibrating)
+		if 'iscalibrating' not in res['values']:
+			print('KEY NOT FOUND')
+			print(res)
+			return False
+		else:
+			return res['values']['iscalibrating']
 
 	def calibration_point_start(self, x, y):
 		self._tell_tracker(EyeTribe.etm_cpstart % (x, y))
