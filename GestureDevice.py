@@ -39,6 +39,9 @@ class GestureDevice(QtCore.QObject):
 		
 		self.pinchThreshold = 0.85
 		self.unpinchThreshold = 0.70
+		
+		self.ignoreThreshold = 1.25
+		self.warnThreshold = 1.2
 	
 		self.leftHand = HandyHand()
 		self.rightHand = HandyHand()
@@ -84,21 +87,19 @@ class GestureDevice(QtCore.QObject):
 				# check for edges
 				box = frame.interaction_box
 				pos = box.normalize_point(hand.palm_position, False)
-				ignoreThreshold = 1.2
-				warnThreshold = 1.0
-				if pos.x > warnThreshold:
+				if pos.x > self.warnThreshold:
 					boundsCheck['right'] = True
-				elif pos.x < 1-warnThreshold:
+				elif pos.x < 1 - self.warnThreshold:
 					boundsCheck['left'] = True
-				if pos.z > warnThreshold:
+				if pos.z > self.warnThreshold:
 					boundsCheck['bottom'] = True
-				elif pos.z < 1-warnThreshold:
+				elif pos.z < 1 - self.warnThreshold:
 					boundsCheck['top'] = True
 				
 				okToEmit = True
-				if pos.x > ignoreThreshold or pos.x < 1-ignoreThreshold:
+				if pos.x > self.ignoreThreshold or pos.x < 1 - self.ignoreThreshold:
 					okToEmit = False
-				if pos.z > ignoreThreshold or pos.z < 1-ignoreThreshold:
+				if pos.z > self.ignoreThreshold or pos.z < 1 - self.ignoreThreshold:
 					okToEmit = False
 
 				if hand.is_left:
@@ -153,19 +154,30 @@ class GestureDevice(QtCore.QObject):
 								self.unpinched.emit(hand)
 								
 						delta = metaHand.updatePosition()
-						if delta[0]!=0 or delta[1]!=0 or delta[2]!=0: #if any of these are nonzero
+						
+						if delta is not None and (delta[0]!=0 or delta[1]!=0 or delta[2]!=0): #if any of these are nonzero
+							#print('%s' % delta)
 							for index, param in enumerate(delta):
-								# absolute value first, otherwise you may end up withi a complex number
-								delta[index] = abs(pow(abs(param) * self.prescale, self.acceleration))
-								if param < 0:
+								# absolute value first, otherwise you may end up with a complex number
+								negative = param < 0
+								param = abs(param)
+								
+								if param > 4:
+									param = 0
+								elif param > 2.5:
+									param = 2.5
+									
+								delta[index] = abs(pow(param * self.prescale, self.acceleration))
+								
+								if negative:
 									delta[index] *= -1
-
 							self.moved.emit(delta)
 					
 			for direction,warn in boundsCheck.items():
 				if warn != self.boundsReached[direction]:
 					self.boundsReached[direction] = warn
 					self.reachingBounds.emit(direction, warn)
+
 	def toggleCalibration(self):
 		self.setCalibrating(not self.calibrating)
 		
@@ -283,10 +295,14 @@ class HandyHand(QtCore.QObject):
 		self.grabbing = False
 		self.pinching = False
 		self.rawPositionHistory = [[], [], []]
-		self.smoothRange = 4
+
+		self.useStabilized = True
+		self.smoothRange = 1
+
 		self.position = [-1, -1, -1]
 		self.lastFixation = None
 		self.staleTimerStart = None
+
 		self.attentionStalePeriod = float(settings.gestureValue('attentionPeriod'))
 		
 		self.detector = DwellSelect(
@@ -308,14 +324,21 @@ class HandyHand(QtCore.QObject):
 		if self.hand is None:
 			return
 			
-		self.rawPositionHistory[0].insert(0, self.hand.palm_position.x)
-		self.rawPositionHistory[1].insert(0, self.hand.palm_position.y)
-		self.rawPositionHistory[2].insert(0, self.hand.palm_position.z)
 		newPos = []
 		delta = []
+		
+		if self.useStabilized:
+			self.rawPositionHistory[0].insert(0, self.hand.stabilized_palm_position.x)
+			self.rawPositionHistory[1].insert(0, self.hand.stabilized_palm_position.y)
+			self.rawPositionHistory[2].insert(0, self.hand.stabilized_palm_position.z)
+		else:
+			self.rawPositionHistory[0].insert(0, self.hand.palm_position.x)
+			self.rawPositionHistory[1].insert(0, self.hand.palm_position.y)
+			self.rawPositionHistory[2].insert(0, self.hand.palm_position.z)
+			
 		for i,history in enumerate(self.rawPositionHistory):
 			self.rawPositionHistory[i] = history[0:self.smoothRange]
-			newPos.append(sum(self.rawPositionHistory[i]) / len(self.rawPositionHistory[i]))
+			newPos.append(sum(self.rawPositionHistory[i]) / (2*len(self.rawPositionHistory[i])+1))
 			delta.append(newPos[i] - self.position[i])
 			self.position[i] = newPos[i]
 		
