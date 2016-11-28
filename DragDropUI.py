@@ -373,14 +373,12 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.gestureTracker = None
 		
 		font = self.font()
-		font.setStyleHint(QtGui.QFont.Monospace)
-		font.setFamily("Courier New")
-		font.setPointSize(18)
+		font.setPointSize(14)
 		self.setFont(font)
 		
 		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 		layout = QtGui.QGridLayout()
-		layout.setSpacing(20)
+		layout.setSpacing(16)
 		self.setLayout(layout)
 		
 		self.tableElementCount = 0
@@ -428,19 +426,19 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		releaseThresholdBox.setSuffix("%")
 		releaseThresholdBox.valueChanged.connect(scheme.gestureTracker.setReleaseThreshold)
 
-		pinchThresholdBox = QtGui.QDoubleSpinBox()
-		pinchThresholdBox.setValue(scheme.gestureTracker.pinchThreshold)
-		pinchThresholdBox.setRange(0, 100)
-		pinchThresholdBox.setSingleStep(1)
-		pinchThresholdBox.setSuffix("%")
-		pinchThresholdBox.valueChanged.connect(scheme.gestureTracker.setPinchThreshold)
-		
-		unpinchThresholdBox = QtGui.QDoubleSpinBox()
-		unpinchThresholdBox.setValue(scheme.gestureTracker.unpinchThreshold)
-		unpinchThresholdBox.setRange(0, 100)
-		unpinchThresholdBox.setSingleStep(1)
-		unpinchThresholdBox.setSuffix("%")
-		unpinchThresholdBox.valueChanged.connect(scheme.gestureTracker.setUnpinchThreshold)		
+#		pinchThresholdBox = QtGui.QDoubleSpinBox()
+#		pinchThresholdBox.setValue(scheme.gestureTracker.pinchThreshold)
+#		pinchThresholdBox.setRange(0, 100)
+#		pinchThresholdBox.setSingleStep(1)
+#		pinchThresholdBox.setSuffix("%")
+#		pinchThresholdBox.valueChanged.connect(scheme.gestureTracker.setPinchThreshold)
+#		
+#		unpinchThresholdBox = QtGui.QDoubleSpinBox()
+#		unpinchThresholdBox.setValue(scheme.gestureTracker.unpinchThreshold)
+#		unpinchThresholdBox.setRange(0, 100)
+#		unpinchThresholdBox.setSingleStep(1)
+#		unpinchThresholdBox.setSuffix("%")
+#		unpinchThresholdBox.valueChanged.connect(scheme.gestureTracker.setUnpinchThreshold)		
 		
 		font = self.font()
 		font.setPointSize(24)
@@ -448,9 +446,9 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		self.currentGrabBox.setAlignment(QtCore.Qt.AlignRight)
 		self.currentGrabBox.setFont(font)
 
-		self.currentPinchBox = QtGui.QLabel()
-		self.currentPinchBox.setAlignment(QtCore.Qt.AlignLeft)
-		self.currentPinchBox.setFont(font)
+#		self.currentPinchBox = QtGui.QLabel()
+#		self.currentPinchBox.setAlignment(QtCore.Qt.AlignLeft)
+#		self.currentPinchBox.setFont(font)
 		
 		dwellDurationBox = QtGui.QDoubleSpinBox()
 		dwellDurationBox.setValue(scheme.gestureTracker.getDwellDuration())
@@ -472,6 +470,16 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		attentionDurationBox.setSuffix("s")
 		attentionDurationBox.valueChanged.connect(scheme.gestureTracker.setAttentionStalePeriod)
 		
+		useStabilizedBox = QtGui.QCheckBox()
+		useStabilizedBox.setChecked(settings.checkBool(settings.gestureValue('useStabilizedPalm')))
+		useStabilizedBox.stateChanged.connect(scheme.gestureTracker.setUseStabilizedPalm)
+
+		smoothRangeBox = QtGui.QSpinBox()
+		smoothRangeBox.setValue(scheme.gestureTracker.getAttentionStalePeriod())
+		smoothRangeBox.setRange(1, 200)
+		smoothRangeBox.setSingleStep(1)
+		smoothRangeBox.valueChanged.connect(scheme.gestureTracker.setSmoothRange)
+		
 		self.calibrateButton = QtGui.QPushButton('Calibrate grab')
 		self.calibrateButton.setCheckable(True)
 		self.calibrateButton.clicked.connect(self.toggleCalibration)
@@ -486,13 +494,15 @@ class DeviceOptionsWindow(QtGui.QWidget):
 			['Dwell duration', dwellDurationBox],
 			['Dwell range', dwellRangeBox],
 			['Attention memory', attentionDurationBox],
+			['Stabalize palm', useStabilizedBox],
+			['Smoothing range', smoothRangeBox],
 #			['Pinch threshold', pinchThresholdBox],
 #			['Unpinch threshold', unpinchThresholdBox],
 #			['Current pinch value', self.currentPinchBox],
 		])
 		
 		scheme.gestureTracker.grabValued.connect(self.setGrabValue)
-		scheme.gestureTracker.pinchValued.connect(self.setPinchValue)
+#		scheme.gestureTracker.pinchValued.connect(self.setPinchValue)
 		scheme.gestureTracker.noHands.connect(self.setGrabValue)
 		scheme.gestureTracker.grabbed.connect(self.grabbed)
 		scheme.gestureTracker.released.connect(self.released)
@@ -567,11 +577,11 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		else:
 			self.currentGrabBox.setText('%.1f%% ' % (100*value))
 	
-	def setPinchValue(self, value=None):
-		if value is None:
-			self.currentPinchBox.setText('')
-		else:
-			self.currentPinchBox.setText('%.1f%% ' % (100*value))
+#	def setPinchValue(self, value=None):
+#		if value is None:
+#			self.currentPinchBox.setText('')
+#		else:
+#			self.currentPinchBox.setText('%.1f%% ' % (100*value))
 	
 	def toggleCalibration(self):		
 		self.gestureTracker.toggleCalibration()

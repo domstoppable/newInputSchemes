@@ -193,42 +193,20 @@ class GestureDevice(QtCore.QObject):
 				self.maxGrab = 400
 			logging.info("Calibrated to: %d - %d" % (self.minGrab, self.maxGrab))
 	
-	def setGrabThreshold(self, threshold):
-		self.grabThreshold = threshold
-		settings.setGestureValue('grabThreshold', threshold)
-
 	def getGrabThreshold(self):
 		return self.grabThreshold
-		
-	def setReleaseThreshold(self, threshold):
-		self.releaseThreshold = threshold
-		settings.setGestureValue('releaseThreshold', threshold)
 		
 	def getReleaseThreshold(self):
 		return self.releaseThreshold
 		
-	def setPinchThreshold(self, threshold):
-		self.pinchThreshold = threshold
-
 	def getPinchThreshold(self):
 		return self.pinchThreshold
 		
-	def setUnpinchThreshold(self, threshold):
-		self.unpinchThreshold = threshold
-
 	def getUnpinchThreshold(self):
 		return self.unpinchThreshold
 		
-	def setPrescale(self, prescale):
-		self.prescale = prescale
-		settings.setGestureValue('prescale', prescale)
-		
 	def getPrescale(self):
 		return self.prescale
-		
-	def setAcceleration(self, acceleration):
-		self.acceleration = acceleration
-		settings.setGestureValue('acceleration', acceleration)
 		
 	def getAcceleration(self):
 		return self.acceleration
@@ -238,6 +216,31 @@ class GestureDevice(QtCore.QObject):
 		
 	def getDwellRange(self):
 		return self.leftHand.getDwellRange()
+		
+	def getAttentionStalePeriod(self):
+		return self.leftHand.getAttentionStalePeriod()
+		
+	def setPinchThreshold(self, threshold):
+		self.pinchThreshold = threshold
+
+	def setUnpinchThreshold(self, threshold):
+		self.unpinchThreshold = threshold
+
+	def setGrabThreshold(self, threshold):
+		self.grabThreshold = threshold
+		settings.setGestureValue('grabThreshold', threshold)
+
+	def setReleaseThreshold(self, threshold):
+		self.releaseThreshold = threshold
+		settings.setGestureValue('releaseThreshold', threshold)
+
+	def setPrescale(self, prescale):
+		self.prescale = prescale
+		settings.setGestureValue('prescale', prescale)
+		
+	def setAcceleration(self, acceleration):
+		self.acceleration = acceleration
+		settings.setGestureValue('acceleration', acceleration)
 		
 	def setDwellDuration(self, duration):
 		self.leftHand.setDwellDuration(duration)
@@ -254,8 +257,15 @@ class GestureDevice(QtCore.QObject):
 		self.rightHand.setAttentionStalePeriod(duration)
 		settings.setGestureValue('attentionPeriod', duration)
 		
-	def getAttentionStalePeriod(self):
-		return self.leftHand.getAttentionStalePeriod()
+	def setUseStabilizedPalm(self, useStabilized):
+		self.leftHand.setUseStabilizedPalm(useStabilized)
+		self.rightHand.setUseStabilizedPalm(useStabilized)
+		settings.setGestureValue('useStabilizedPalm', useStabilized)
+		
+	def setSmoothRange(self, windowSize):
+		self.leftHand.setSmoothRange(windowSize)
+		self.rightHand.setSmoothRange(windowSize)
+		settings.setGestureValue('smoothRange', windowSize)
 		
 	def getLastFixation(self):
 		left = self.leftHand.getLastFixation()
@@ -296,8 +306,8 @@ class HandyHand(QtCore.QObject):
 		self.pinching = False
 		self.rawPositionHistory = [[], [], []]
 
-		self.useStabilized = True
-		self.smoothRange = 1
+		self.useStabilized = settings.checkBool(settings.gestureValue('useStabilizedPalm'))
+		self.smoothRange = int(settings.gestureValue('smoothRange'))
 
 		self.position = [-1, -1, -1]
 		self.lastFixation = None
@@ -376,12 +386,24 @@ class HandyHand(QtCore.QObject):
 	def getDwellRange(self):
 		return self.detector.range
 		
+	def getUseStabilizedPalm(self):
+		return self.useStabilized
+		
+	def getSmoothRange(self):
+		return self.smoothRange
+		
 	def setDwellDuration(self, duration):
 		self.detector.setDuration(duration)
 		
 	def setDwellRange(self, rangeInPixels):
 		self.detector.setRange(rangeInPixels)
 
+	def setUseStabilizedPalm(self, useStabilized):
+		self.useStabilized = useStabilized
+		
+	def setSmoothRange(self, smoothRange):
+		self.smoothRange = smoothRange
+		
 	def getLastFixation(self):
 		return self.lastFixation
 		

@@ -20,6 +20,8 @@ _gestureDefaults = {
 	'attentionPeriod': .2,
 	'minGrab': 30,
 	'maxGrab': 450,
+	'useStabilizedPalm': True,
+	'smoothRange': 1
 }
 
 _gazeDefaults = {
@@ -57,4 +59,4 @@ def _setValue(section, key, value):
 	_personalSettings.endGroup()
 	
 def checkBool(value):
-	return value in [ True, 'True', 'true', 't', 1, '1' ]
+	return value not in [ False, 'False', 'false', 'F', 'f', 0, '0', None ]
