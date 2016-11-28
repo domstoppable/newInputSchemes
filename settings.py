@@ -11,21 +11,21 @@ _systemDefaults = {
 }
 
 _gestureDefaults = {
-	'prescale': 3.0,
-	'acceleration': 1.45,
+	'prescale': 5.0,
+	'acceleration': 2,
 	'grabThreshold': 96.0,
 	'releaseThreshold': 94.0,
-	'dwellDuration': 0.5,
-	'dwellRange': 2,
-	'attentionPeriod': .7,
+	'dwellDuration': 0.35,
+	'dwellRange': 2.2,
+	'attentionPeriod': .2,
 	'minGrab': 30,
 	'maxGrab': 450,
 }
 
 _gazeDefaults = {
-	'dwellDuration': 0.5,
+	'dwellDuration': 0.35,
 	'dwellRange': 75,
-	'attentionPeriod': 1,
+	'attentionPeriod': .75,
 }
 
 def loadPersonalSettings(userID):
