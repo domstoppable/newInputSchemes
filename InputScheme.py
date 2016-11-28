@@ -306,8 +306,11 @@ class GestureScheme(MouseScheme):
 		self.attentivePoint = None
 				
 	def handMoved(self, delta):
+		if delta is None:
+			return
+			
 		self.virtualPos[0] = clamp(self.virtualPos[0] + delta[0], 0, self.screenSize[0])
-		self.virtualPos[1] = clamp(self.virtualPos[1] + delta[2] , 0, self.screenSize[1])
+		self.virtualPos[1] = clamp(self.virtualPos[1] - (delta[1] + delta[2])/2 , 0, self.screenSize[1])
 		pyMouse.move(round(self.virtualPos[0]), round(self.virtualPos[1]))
 			
 	def stop(self):
