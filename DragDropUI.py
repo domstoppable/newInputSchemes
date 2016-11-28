@@ -290,32 +290,32 @@ class InputFeedbackWindow(QtGui.QWidget):
 			self.handWidget.setPixmap(self.handImages[self.handGood][self.handOpen])
 			
 	def setHandGood(self):
-		logging.debug("Hand good")
+#		logging.debug("Hand good")
 		self.handGood = True
 		self._updateIcons()
 	
 	def setHandBad(self):
-		logging.debug("Hand bad")
+#		logging.debug("Hand bad")
 		self.handGood = False
 		self._updateIcons()
 	
 	def setHandOpen(self):
-		logging.debug("Hand open")
+#		logging.debug("Hand open")
 		self.handOpen = True
 		self._updateIcons()
 	
 	def setHandClosed(self):
-		logging.debug("Hand closed")
+#		logging.debug("Hand closed")
 		self.handOpen = False
 		self._updateIcons()
 
 	def setEyeGood(self):
-		logging.debug("Eyes good")
+#		logging.debug("Eyes good")
 		self.eyeGood = True
 		self._updateIcons()
 		
 	def setEyeBad(self):
-		logging.debug("Eyes bad")
+#		logging.debug("Eyes bad")
 		self.eyeGood = False
 		self._updateIcons()
 		
@@ -404,13 +404,13 @@ class DeviceOptionsWindow(QtGui.QWidget):
 
 		prescaleBox = QtGui.QDoubleSpinBox()
 		prescaleBox.setValue(scheme.gestureTracker.getPrescale())
-		prescaleBox.setRange(1, 4)
+		prescaleBox.setRange(0, 100)
 		prescaleBox.setSingleStep(0.25)
 		prescaleBox.valueChanged.connect(scheme.gestureTracker.setPrescale)
 		
 		accelerationBox = QtGui.QDoubleSpinBox()
 		accelerationBox.setValue(scheme.gestureTracker.getAcceleration())
-		accelerationBox.setRange(1, 4)
+		accelerationBox.setRange(0, 100)
 		accelerationBox.setSingleStep(0.25)
 		accelerationBox.valueChanged.connect(scheme.gestureTracker.setAcceleration)
 		
