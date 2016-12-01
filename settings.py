@@ -11,8 +11,8 @@ _systemDefaults = {
 }
 
 _gestureDefaults = {
-	'prescale': 5.0,
-	'acceleration': 2,
+	'prescale': 8.75,
+	'acceleration': 1.75,
 	'grabThreshold': 96.0,
 	'releaseThreshold': 94.0,
 	'dwellDuration': 0.35,
