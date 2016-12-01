@@ -91,9 +91,10 @@ class GestureDevice(QtCore.QObject):
 					boundsCheck['right'] = True
 				elif pos.x < 1 - self.warnThreshold:
 					boundsCheck['left'] = True
-				if pos.z > self.warnThreshold:
+					
+				if (pos.y + pos.z) / 2 < self.warnThreshold - 1:
 					boundsCheck['bottom'] = True
-				elif pos.z < 1 - self.warnThreshold:
+				elif (pos.y + pos.z / 2) > self.warnThreshold:
 					boundsCheck['top'] = True
 				
 				okToEmit = True
