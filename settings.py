@@ -27,7 +27,7 @@ _gestureDefaults = {
 _gazeDefaults = {
 	'dwellDuration': 0.35,
 	'dwellRange': 75,
-	'attentionPeriod': .75,
+	'attentionPeriod': .4,
 }
 
 def loadPersonalSettings(userID):
