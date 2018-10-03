@@ -208,6 +208,11 @@ class MouseScheme(InputScheme):
 				window.feedbackWindow.close()
 		
 	def grab(self, obj, mouseEvent):
+		if self.floatingIcon != None:
+			self.floatingIcon.hide()
+			self.floatingIcon.close()
+			self.floatingIcon = None
+
 		pos = obj.mapToGlobal(mouseEvent.pos())
 		if self.doGrab(pos.x(), pos.y()):
 			if len(self.grabbedIcons) == 1:

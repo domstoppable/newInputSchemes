@@ -376,7 +376,7 @@ class DeviceOptionsWindow(QtGui.QWidget):
 		font.setPointSize(14)
 		self.setFont(font)
 		
-		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+#		self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
 		layout = QtGui.QGridLayout()
 		layout.setSpacing(16)
 		self.setLayout(layout)
